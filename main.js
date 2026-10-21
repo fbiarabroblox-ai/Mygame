@@ -13,6 +13,12 @@ let avatar={body:'#3b82f6',head:'#fcd34d',hat:'none'};
 const MUSIC=['sounds/music1.mp3','sounds/music2.mp3','sounds/music3.mp3'];
 const sfx=n=>{const a=new Audio(`sounds/${n}.mp3`);a.volume=.8;a.play().catch(()=>{})};
 let bg;
+
+window.addEventListener('click', () => {
+  const dummy = new Audio();
+  dummy.play().catch(() => {});
+}, { once: true });
+
 function playMusic(){
   stopMusic();
   bg=new Audio(MUSIC[Math.floor(Math.random()*MUSIC.length)]);
