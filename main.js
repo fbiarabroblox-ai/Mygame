@@ -123,7 +123,7 @@ function runHost(code,game){
     m.position.set(R(-A+2,A-2),.8,R(-A+2,A-2));s.add(m);return m;
   };
   const top=()=>Object.values(P).sort((a,b)=>b.score-a.score)[0]?.name||'—';
-  const end=m=>{phase='end';msg=m};
+  const end=m=>{phase='end';msg=m;stopMusic()};
 
   $('startRound').onclick=()=>{
     const ids=Object.keys(P);
@@ -133,7 +133,7 @@ function runHost(code,game){
     items.forEach(m=>s.remove(m));items.length=0;
     if(game==='tq'){for(let i=0;i<12;i++)items.push(gold());t=60;msg='Собирай золото!'}
     else{ids.sort(()=>Math.random()-.5);P[ids[0]].role='mur';if(ids.length>2)P[ids[1]].role='sher';t=120;msg='Раунд идёт!'}
-    phase='play';
+      phase='play';playMusic();
   };
 
   // MM2: убийца бьёт ножом рядом, шериф стреляет вперёд
@@ -143,7 +143,7 @@ function runHost(code,game){
     const sx=Math.sin(p.a),cz=Math.cos(p.a);
     if(p.role==='mur'){
       p.cd=clock+1;
-      for(const q in P)if(q!==u&&P[q].alive&&Math.hypot(P[q].x-p.x,P[q].z-p.z)<3)P[q].alive=false;
+        for(const q in P)if(q!==u&&P[q].alive&&Math.hypot(P[q].x-p.x,P[q].z-p.z)<3){P[q].alive=false;sfx('kill')}
     }
     if(p.role==='sher'){
       p.cd=clock+2;let best=null,bf=99;
@@ -152,7 +152,8 @@ function runHost(code,game){
         const dx=o.x-p.x,dz=o.z-p.z,f=dx*sx+dz*cz,l=Math.abs(dx*cz-dz*sx);
         if(f>0&&f<bf&&l<1.3){best=o;bf=f}
       }
-      if(best){best.alive=false;if(best.role!=='mur')p.alive=false}
+      if(best){best.alive=false;sfx('kill');
+        if(best.role!=='mur')p.alive=false}
     }
   };
 
@@ -175,7 +176,7 @@ function runHost(code,game){
     if(phase==='play'){
       if(game==='tq'){
         items.forEach(m=>{for(const u in P){const p=P[u];
-          if(P[u].alive&&Math.hypot(p.x-m.position.x,p.z-m.position.z)<1.3){p.score++;m.position.set(R(-A+2,A-2),.8,R(-A+2,A-2));break}}});
+          if(P[u].alive&&Math.hypot(p.x-m.position.x,p.z-m.position.z)<1.3){p.score++;sfx('gold');m.position.set(R(-A+2,A-2),.8,R(-A+2,A-2));break}}});
       }else{
         const al=Object.values(P).filter(p=>p.alive);
         if(!al.some(p=>p.role==='mur'))end('Мирные победили!');
