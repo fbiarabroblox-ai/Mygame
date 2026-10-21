@@ -10,6 +10,17 @@ const show=id=>document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==i
 const R=(a,b)=>a+Math.random()*(b-a);
 const esc=s=>String(s).replace(/[<>&"]/g,'');
 let avatar={body:'#3b82f6',head:'#fcd34d',hat:'none'};
+const MUSIC=['sounds/music1.mp3','sounds/music2.mp3','sounds/music3.mp3'];
+const sfx=n=>{const a=new Audio(`sounds/${n}.mp3`);a.volume=.8;a.play().catch(()=>{})};
+let bg;
+function playMusic(){
+  stopMusic();
+  bg=new Audio(MUSIC[Math.floor(Math.random()*MUSIC.length)]);
+  bg.volume=.3;
+  bg.onended=playMusic; // когда песня кончилась, включится другая случайная
+  bg.play().catch(()=>{});
+}
+const stopMusic=()=>{if(bg){bg.onended=null;bg.pause()}};
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>location.reload());
 
 /* ---------- Аккаунты ---------- */
