@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Arena 3D</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+
+<section id="auth" class="screen" hidden>
+  <h1>Arena 3D</h1>
+  <input id="u" placeholder="Ник (латиница, цифры, _)" autocomplete="username">
+  <input id="p" type="password" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password">
+  <div class="row"><button id="login">Войти</button><button id="reg" class="alt">Регистрация</button></div>
+  <p id="autherr" class="err"></p>
+</section>
+
+<section id="menu" class="screen" hidden>
+  <h1 id="hello"></h1>
+  <button id="bClient">Клиент</button>
+  <button id="bHost">Хост</button>
+  <button id="bAv" class="alt">Мой аватар</button>
+  <button id="bOut" class="alt">Выйти</button>
+</section>
+
+<section id="hostsetup" class="screen" hidden>
+  <h2>Выбери игру</h2>
+  <select id="gamesel">
+    <option value="tq">Treasure Quest</option>
+    <option value="mm2">MM2</option>
+  </select>
+  <button id="bStart">Начать</button>
+  <button class="back alt">Назад</button>
+</section>
+
+<section id="join" class="screen" hidden>
+  <h2>Код комнаты</h2>
+  <input id="jc" inputmode="numeric" maxlength="5" placeholder="12345">
+  <button id="bPlay">Играть</button>
+  <button class="back alt">Назад</button>
+  <p id="joinerr" class="err"></p>
+</section>
+
+<section id="avatar" class="screen" hidden>
+  <h2>Аватар</h2>
+  <canvas id="prev" width="240" height="240"></canvas>
+  <label>Тело <input id="cb" type="color"></label>
+  <label>Голова <input id="ch" type="color"></label>
+  <label>Шапка
+    <select id="hat">
+      <option value="none">Без шапки</option>
+      <option value="cone">Колпак</option>
+      <option value="cube">Шляпа</option>
+    </select>
+  </label>
+  <button id="bSave">Сохранить</button>
+  <button class="back alt">Назад</button>
+</section>
+
+<section id="hostview" class="screen" hidden>
+  <canvas id="cv"></canvas>
+  <div id="hud">
+    <b id="codeShow"></b>
+    <div id="plist"></div>
+    <button id="startRound">Запустить раунд</button>
+    <div id="info"></div>
+  </div>
+</section>
+
+<section id="pad" class="screen" hidden>
+  <div id="pinfo"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <button id="act">⚔</button>
+</section>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
