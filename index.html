@@ -30,49 +30,70 @@
   <select id="gamesel">
     <option value="tq">Treasure Quest</option>
     <option value="mm2">MM2</option>
+    <option value="rg">Красный/зелёный свет</option>
+    <option value="ed">Побег от Давида</option>
   </select>
   <button id="bStart">Начать</button>
-  <button class="back alt">Назад</button>
+  <button class="back alt">← Назад</button>
 </section>
 
 <section id="join" class="screen" hidden>
   <h2>Код комнаты</h2>
   <input id="jc" inputmode="numeric" maxlength="5" placeholder="12345">
   <button id="bPlay">Играть</button>
-  <button class="back alt">Назад</button>
+  <button class="back alt">← Назад</button>
   <p id="joinerr" class="err"></p>
 </section>
 
 <section id="avatar" class="screen" hidden>
   <h2>Аватар</h2>
   <canvas id="prev" width="240" height="240"></canvas>
-  <label>Тело <input id="cb" type="color"></label>
-  <label>Голова <input id="ch" type="color"></label>
+  <div class="grid">
+    <label>Тело <input id="cb" type="color"></label>
+    <label>Голова <input id="ch" type="color"></label>
+    <label>Руки <input id="ca" type="color"></label>
+    <label>Ноги <input id="cl" type="color"></label>
+  </div>
   <label>Шапка
     <select id="hat">
       <option value="none">Без шапки</option>
       <option value="cone">Колпак</option>
-      <option value="cube">Шляпа</option>
+      <option value="cube">Цилиндр</option>
+      <option value="cap">Кепка</option>
+      <option value="crown">Корона</option>
+      <option value="horns">Рога</option>
     </select>
   </label>
-  <button id="bSave">Сохранить</button>
-  <button class="back alt">Назад</button>
+  <div class="row">
+    <label><input id="gl" type="checkbox"> Очки</label>
+    <label><input id="cp" type="checkbox"> Плащ</label>
+  </div>
+  <div class="row"><button id="bSave">Сохранить</button><button class="back alt">← Назад</button></div>
 </section>
 
 <section id="hostview" class="screen" hidden>
   <canvas id="cv"></canvas>
   <div id="hud">
+    <button class="back alt">← Назад</button>
     <b id="codeShow"></b>
     <div id="plist"></div>
     <button id="startRound">Запустить раунд</button>
+    <div class="row"><button id="focus" class="alt">🎯 Все</button><button id="zout" class="alt">−</button><button id="zin" class="alt">+</button></div>
     <div id="info"></div>
+  </div>
+  <div id="recap" hidden>
+    <h2 id="rtitle"></h2>
+    <img id="rimg" alt="">
+    <p id="rcap"></p>
+    <button id="rclose">Закрыть</button>
   </div>
 </section>
 
 <section id="pad" class="screen" hidden>
+  <button id="padBack" class="back alt">←</button>
   <div id="pinfo"></div>
   <div id="stick"><div id="knob"></div></div>
-  <button id="act">⚔</button>
+  <button id="act" hidden>🔪</button>
 </section>
 
 <script type="module" src="main.js"></script>
