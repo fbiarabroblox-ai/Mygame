@@ -13,6 +13,16 @@ const esc=s=>String(s).replace(/[<>&"]/g,'');
 const DEF={body:'#3b82f6',head:'#fcd34d',arms:'#fcd34d',legs:'#334155',hat:'none',gl:0,cape:0};
 let avatar={...DEF};
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>location.reload());
+/* ---------- Запрос на фуллскрин ---------- */
+
+document.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        // Включаем фуллскрин
+        document.documentElement.requestFullscreen().catch((err) => {
+            console.log(err);
+        });
+    }
+});
 
 /* ---------- Звук ---------- */
 const MUSIC=['sounds/music1.mp3','sounds/music2.mp3','sounds/music3.mp3'];
