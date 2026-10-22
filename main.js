@@ -268,10 +268,10 @@ function runHost(code,game){
   // «Кнопка судьбы»: 11 случайных событий
   const EVS=[
     {n:'👹 Девид охотится!',d:20,go:()=>spawnMon('Девид','#dc2626',5,1),tk:dt=>monTick(dt)},
-    {n:'🌙 Ночь... Убийца в городе!',d:20,go:()=>{hemi.intensity=.1;s.background.set('#050510');lightAll(1);spawnMon('Убийца','#111827',4.8,0)},tk:dt=>monTick(dt),end:()=>{hemi.intensity=1.4;s.background.set('#87ceeb');lightAll(0)}},
+    {n:'🌙 Ночь... Убийца среди вас!',d:20,go:()=>{hemi.intensity=.1;s.background.set('#050510');lightAll(1);const al=Object.values(P).filter(p=>p.alive),k=al[Math.floor(Math.random()*al.length)];if(k)k.role='mur';ex={k}},tk:()=>{},end:()=>{hemi.intensity=1.4;s.background.set('#87ceeb');lightAll(0);if(ex.k)ex.k.role='inn'}},
     {n:'☄️ Метеориты!',d:12,go:()=>ex={c:0},tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.45;const p=rp();strike(p.x+R(-4,4),p.z+R(-4,4),3,1.2,'#f97316')}}},
     {n:'🌪 Торнадо!',d:16,
-      go:()=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(3,.6,10,16),new THREE.MeshLambertMaterial({color:'#9ca3af',transparent:true,opacity:.7}));m.position.y=5;s.add(m);ex={m,x:0,z:0,vx:R(-4,4),vz:R(-4,4),c:0}},
+      go:()=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(3,.6,10,16),new THREE.MeshLambertMaterial({color:'#9ca3af',transparent:true,opacity:.7}));const a=R(0,6.28),r=R(13,18),x=Math.cos(a)*r,z=Math.sin(a)*r;m.position.set(x,5,z);s.add(m);ex={m,x,z,vx:R(-4,4),vz:R(-4,4),c:0}},
       tk:dt=>{const o=ex;o.c-=dt;if(o.c<=0){o.c=2;o.vx=R(-4,4);o.vz=R(-4,4)}
         o.x=cl(o.x+o.vx*dt);o.z=cl(o.z+o.vz*dt);o.m.position.x=o.x;o.m.position.z=o.z;o.m.rotation.y+=dt*8;
         for(const u in P){const p=P[u];if(!p.alive)continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);
@@ -282,10 +282,17 @@ function runHost(code,game){
       go:()=>{const x=R(-8,8),z=R(-8,8),c=new THREE.Mesh(new THREE.ConeGeometry(2.5,5,16),new THREE.MeshLambertMaterial({color:'#7c2d12'}));c.position.set(x,2.5,z);s.add(c);const l=disc(1,'#f97316',.8);l.position.set(x,.08,z);ex={x,z,c,l}},
       tk:()=>{const o=ex,r=1.5+7.5*(evT/14);o.l.scale.setScalar(r);for(const u in P){const p=P[u];if(p.alive&&Math.hypot(p.x-o.x,p.z-o.z)<r)kill(p,p.name+' сгорел в лаве!')}},
       end:()=>{s.remove(ex.c);s.remove(ex.l)}},
-    {n:'🏃 Обби: бегущие стены!',d:18,
-      go:()=>{ex={w:[-15,-5,5,15].map((z,k)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(7,2,1.4),new THREE.MeshLambertMaterial({color:'#f59e0b'}));m.position.set(R(-A,A),1,z);s.add(m);return{m,v:(k%2?-1:1)*R(5,8)}})}},
-      tk:dt=>ex.w.forEach(o=>{const m=o.m;m.position.x+=o.v*dt;if(Math.abs(m.position.x)>A+4)m.position.x=-Math.sign(o.v)*(A+4);
-        for(const u in P){const p=P[u];if(p.alive&&Math.abs(p.x-m.position.x)<3.8&&Math.abs(p.z-m.position.z)<1.3)kill(p,p.name+' врезался в стену!')}}),
+    {n:'🏃 Обби: летающие стены!',d:18,
+      go:()=>{ex={w:Array.from({length:7},()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(7,2,1.4),new THREE.MeshLambertMaterial({color:'#f59e0b'})),an=R(0,6.28),v=R(5,8);
+        m.position.set(R(-A,A),1,R(-A,A));s.add(m);return{m,v,vx:Math.cos(an)*v,vz:Math.sin(an)*v,c:R(1.5,3.5),th:R(0,6.28),w:R(-1.2,1.2)}})}},
+      tk:dt=>ex.w.forEach(o=>{const m=o.m;o.c-=dt;
+        if(o.c<=0){o.c=R(1.5,3.5);const an=R(0,6.28);o.vx=Math.cos(an)*o.v;o.vz=Math.sin(an)*o.v}
+        m.position.x+=o.vx*dt;m.position.z+=o.vz*dt;
+        if(Math.abs(m.position.x)>A){m.position.x=Math.sign(m.position.x)*A;o.vx*=-1}
+        if(Math.abs(m.position.z)>A){m.position.z=Math.sign(m.position.z)*A;o.vz*=-1}
+        o.th+=o.w*dt;m.rotation.y=o.th;const c=Math.cos(o.th),sn=Math.sin(o.th);
+        if(evT>1.5)for(const u in P){const p=P[u];if(!p.alive)continue;const dx=p.x-m.position.x,dz=p.z-m.position.z;
+          if(Math.abs(dx*c-dz*sn)<3.8&&Math.abs(dx*sn+dz*c)<1.3)kill(p,p.name+' врезался в стену!')}}),
       end:()=>ex.w.forEach(o=>s.remove(o.m))},
     {n:'💰 Денежный дождь! Собирай!',d:15,go:()=>ex={c:0},
       tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.2;
@@ -309,7 +316,7 @@ function runHost(code,game){
   ];
   const startEv=e=>{ev=e;evT=0;msg=e.n;e.go();snap(e.n,undefined,undefined,true)};
   const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;if(mon){s.remove(mon.m);mon=null}fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
-  const press=p=>{if(ev||clock<evAt||Math.hypot(p.x,p.z)>4)return;p.cd=clock+1;startEv(EVS[Math.floor(Math.random()*EVS.length)])};
+  const press=p=>{if(p.role==='mur'){p.cd=clock+1;for(const q in P){const o=P[q];if(o!==p&&o.alive&&Math.hypot(o.x-p.x,o.z-p.z)<3)kill(o,p.name+' убил '+o.name+' ножом!')}return}if(ev||clock<evAt||Math.hypot(p.x,p.z)>4)return;p.cd=clock+1;startEv(EVS[Math.floor(Math.random()*EVS.length)])};
   // толчок (царь горы, круг) и удар по мячу (футбол)
   const push=p=>{p.cd=clock+1.2;for(const q in P){const o=P[q];if(o===p||!o.alive)continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);if(d<3.2&&d>.01){o.kx=dx/d*20;o.kz=dz/d*20}}};
   const kick=p=>{const dx=ball.position.x-p.x,dz=ball.position.z-p.z,d=Math.hypot(dx,dz);p.cd=clock+.5;if(d<3.2&&d>.01){bv.x=dx/d*22;bv.z=dz/d*22}};
@@ -522,10 +529,10 @@ $('bPlay').onclick=async()=>{
     const dead=m.al===false?' (ты выбыл)':'';
     const role={mur:'Ты УБИЙЦА 🔪',sher:'Ты ШЕРИФ 🔫',inn:'Ты мирный'}[m.r]||'';
     const sc=Math.floor(m.s||0),fin=s.phase==='end';
-    const X={tq:'Золото: '+sc,mm2:role+dead,rg:(s.light==='green'?'🟢 БЕГИ':'🔴 СТОЙ')+dead,ed:'Беги от Девида!'+dead,ch:'Монет: '+sc+dead,kh:'Очки: '+sc,tg:(m.r==='it'?'🏃 ТЫ ВОДИШЬ! ':'Убегай! ')+sc,ring:'Не вылети из круга!'+dead,fb:m.r==='r'?'Ты за 🔴':'Ты за 🔵'};
+    const X={tq:'Золото: '+sc,mm2:role+dead,rg:(s.light==='green'?'🟢 БЕГИ':'🔴 СТОЙ')+dead,ed:'Беги от Девида!'+dead,ch:(m.r==='mur'?'Ты УБИЙЦА 🔪 · ':'')+'Монет: '+sc+dead,kh:'Очки: '+sc,tg:(m.r==='it'?'🏃 ТЫ ВОДИШЬ! ':'Убегай! ')+sc,ring:'Не вылети из круга!'+dead,fb:m.r==='r'?'Ты за 🔴':'Ты за 🔵'};
     const extra=play?X[game]:fin&&game==='ed'?(m.al?'🏆 Ты выжил!':'💀 Ты проиграл'):['tq','ch','kh','tg'].includes(game)?X[game]:'';
     document.body.style.background=game==='rg'&&play?(s.light==='green'?'#14532d':'#7f1d1d'):'#0f172a';
-    const lab={mm2:m.r==='sher'?'🔫 '+(m.c||0)+'%':m.r==='mur'?'🔪':'',ch:'🔴',kh:'💥',ring:'💥',fb:'⚽'}[game]||'';
+    const lab={mm2:m.r==='sher'?'🔫 '+(m.c||0)+'%':m.r==='mur'?'🔪':'',ch:m.r==='mur'?'🔪':'🔴',kh:'💥',ring:'💥',fb:'⚽'}[game]||'';
     $('act').hidden=!(play&&m.al!==false&&lab);$('act').textContent=lab;
     
     $('pinfo').textContent=[s.msg,play?s.t+' с':'',extra].filter(Boolean).join(' · ');
