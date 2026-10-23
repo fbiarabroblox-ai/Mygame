@@ -6,6 +6,7 @@ import {firebaseConfig} from './firebase-config.js';
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
 const $=id=>document.getElementById(id),A=20,SPEED=7,N=10,CS=4;
+clearTimeout(window.bootTimer);$('boot').hidden=true;try{sessionStorage.removeItem('retried')}catch(e){}
 const NAMES={tq:'Treasure Quest',mm2:'MM2',rg:'Красный/зелёный свет',ed:'Побег от Девида',ch:'Кнопка судьбы',kh:'Царь горы',tg:'Догонялки',ring:'Оставайся в круге',fb:'Футбол'};
 const show=id=>document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);
 const R=(a,b)=>a+Math.random()*(b-a);
@@ -119,11 +120,12 @@ function playMusic(){stopMusic();bg=new Audio(MUSIC[Math.floor(Math.random()*MUS
 
 /* ---------- Аккаунты ---------- */
 const mail=u=>u.trim().toLowerCase()+'@mpgame.app';
+let regBusy=false;
 async function authDo(reg){
   const u=$('u').value.trim(),p=$('p').value;
   if(!/^[a-zA-Z0-9_]{3,16}$/.test(u))return $('autherr').textContent=T('Ник: 3–16 символов, латиница, цифры или _');
   try{
-    if(reg){const c=await createUserWithEmailAndPassword(auth,mail(u),p);await updateProfile(c.user,{displayName:u});enter(c.user)}
+    if(reg){regBusy=true;try{const c=await createUserWithEmailAndPassword(auth,mail(u),p);await updateProfile(c.user,{displayName:u});enter(c.user)}finally{regBusy=false}}
     else await signInWithEmailAndPassword(auth,mail(u),p);
   }catch(e){$('autherr').textContent=T({'auth/email-already-in-use':'Ник занят','auth/invalid-credential':'Неверный ник или пароль','auth/weak-password':'Пароль короче 6 символов'}[e.code]||e.code)}
 }
@@ -139,7 +141,15 @@ function enter(u){
     if(pendingCode){const c=pendingCode;pendingCode=null;history.replaceState(null,'',location.pathname);$('jc').value=c;show('join');joinGame(c)}
   });
 }
-onAuthStateChanged(auth,u=>u?(u.displayName&&enter(u)):show('auth'));
+// аккаунт без имени (сбой связи во время регистрации) раньше давал пустой экран — теперь имя восстанавливается из логина
+onAuthStateChanged(auth,u=>{
+  if(!u)return show('auth');
+  if(u.displayName)return enter(u);
+  if(regBusy)return;
+  updateProfile(u,{displayName:(u.email||'player@x').split('@')[0]}).then(()=>enter(u)).catch(()=>show('auth'));
+});
+// страховка: если за 5 секунд ни один экран так и не показался — показываем вход
+setTimeout(()=>{if(![...document.querySelectorAll('.screen')].some(s=>!s.hidden))show('auth')},5000);
 $('login').onclick=()=>authDo(false);
 $('reg').onclick=()=>authDo(true);
 $('bOut').onclick=()=>signOut(auth);
@@ -338,6 +348,10 @@ function runHost(code,game){
   const closeRoom=()=>remove(roomRef);
   addEventListener('pagehide',closeRoom);
   document.querySelector('#hostview .back').onclick=async()=>{try{await closeRoom()}catch(e){}location.reload()};
+  // компактная панель на телефонах: сворачивается кнопкой ☰, QR увеличивается по нажатию
+  $('hud').classList.toggle('collapsed',matchMedia('(max-width:700px),(max-height:520px)').matches);
+  $('hudToggle').onclick=()=>$('hud').classList.toggle('collapsed');
+  $('qr').onclick=()=>$('qr').classList.toggle('big');
   let qrOk=false;
   try{
     const q=qrcode(0,'M');q.addData(location.origin+location.pathname+'?code='+code);q.make();
@@ -664,7 +678,7 @@ function runHost(code,game){
     acc+=dt;
     if(acc>.25){
       acc=0;const ps=Object.entries(P).sort((a,b)=>b[1].score-a[1].score),mu=Object.values(P).find(o=>o.role==='mur'&&o.alive);
-      $('focus').textContent='🎯 '+(f?f.name:T('Все'));$('qr').hidden=!qrOk||phase==='play';
+      $('focus').textContent='🎯 '+(f?f.name:T('Все'));$('qr').hidden=!qrOk||phase==='play';$('status').textContent=T(msg)+(phase==='play'?' · '+Math.ceil(t)+' '+UNIT[lang]:'');
       $('info').innerHTML=`<div>${T(msg)}${phase==='play'?' · '+Math.ceil(t)+' '+UNIT[lang]:''}</div>`+
         ps.map(([,p])=>`<div>${game==='fb'?(p.team?'🔵 ':'🔴 '):''}${['tq','kh','tg','ch'].includes(game)?Math.floor(p.score)+(p.alive?' — ':' ✖ '):p.alive?'● ':'✖ '}${p.name}</div>`).join('');
       set(path('state'),{phase,t:Math.ceil(t),msg,light,p:Object.fromEntries(ps.map(([u,p])=>[u,{s:Math.floor(p.score),al:p.alive,r:p.role,c:p.role==='sher'&&mu?Math.round(chance(p,mu)*100):0}]))});
