@@ -41,3 +41,48 @@ input[type=checkbox]{min-width:0;width:24px;height:24px}
 #qr{position:fixed;right:12px;bottom:12px;background:#fff;color:#000;padding:8px;border-radius:12px;text-align:center;z-index:5}
 #qr img{width:150px;height:150px;display:block;image-rendering:pixelated}
 #qrtxt{font-weight:700;font-size:20px}
+
+/* ---------- адаптивность ---------- */
+html{height:100%}
+body{overflow-y:auto;touch-action:manipulation}
+.screen{min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:12px}
+.screen>:first-child{margin-top:auto}
+.screen>:last-child{margin-bottom:auto}
+#hostview,#pad{position:fixed;inset:0;min-height:0;padding:0;overflow:hidden;touch-action:none;display:block}
+#shop{height:100dvh}
+input,select,button{min-width:min(240px,80vw)}
+#hudTop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#hudTop button{min-width:0}
+#codeShow{flex:1;min-width:0}
+#hudBody{display:flex;flex-direction:column;gap:8px}
+#hud #startRound{min-width:0}
+#hudToggle{display:none}
+#status{display:none;font-size:14px}
+#info{max-height:30vh;overflow-y:auto}
+#qr{cursor:pointer}
+#qr.big img{width:min(70vmin,320px);height:min(70vmin,320px)}
+@media (max-width:700px),(max-height:520px){
+  #hud{top:6px;left:6px;padding:8px;gap:6px;max-width:min(270px,62vw);font-size:14px;border-radius:12px}
+  #hud button{padding:6px 10px;font-size:14px;min-width:0}
+  #codeShow{font-size:13px}
+  #hudToggle{display:inline-block}
+  #status{display:block}
+  #hud.collapsed #hudBody{display:none}
+  #info{max-height:35vh}
+  #qr{padding:4px;right:6px;bottom:6px}
+  #qr img{width:90px;height:90px}
+  #qrtxt{font-size:14px}
+  #lang{top:6px;right:6px;font-size:12px;padding:4px 6px}
+  #pinfo{font-size:16px;top:56px}
+  #padBack{top:6px;left:6px}
+  #rimg{max-height:45vh}
+  #rcap{font-size:16px}
+  h1{font-size:26px}
+}
+
+#boot{position:fixed;inset:0;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:100;text-align:center;padding:20px;font-size:20px}
+#boot[hidden]{display:none}
+#boot button{display:none}
+#bootfail{display:none;font-size:16px}
+#boot.fail #bootmsg{display:none}
+#boot.fail #bootfail,#boot.fail button{display:block}
