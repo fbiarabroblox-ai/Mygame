@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,updateProfile} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import {getDatabase,ref,set,get,onValue,onDisconnect} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import {getDatabase,ref,set,get,remove,runTransaction,onValue,onDisconnect} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import {firebaseConfig} from './firebase-config.js';
 
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
@@ -13,8 +13,8 @@ const esc=s=>String(s).replace(/[<>&"]/g,'');
 const DEF={body:'#3b82f6',head:'#fcd34d',arms:'#fcd34d',legs:'#334155',hat:'none',gl:0,cape:0};
 let avatar={...DEF};
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>location.reload());
-/* ---------- Запрос на фуллскрин ---------- */
 
+/* ---------- Запрос на фуллскрин ---------- */
 document.addEventListener('click', () => {
     if (!document.fullscreenElement) {
         // Включаем фуллскрин
@@ -23,6 +23,92 @@ document.addEventListener('click', () => {
         });
     }
 });
+
+/* ---------- Языки: русский / English / Eesti ---------- */
+let lang=localStorage.getItem('lang')||'ru';
+const UNIT={ru:'с',en:'s',et:'s'},MINU={ru:'мин',en:'min',et:'min'};
+const L=[
+['Войти','Log in','Sisene'],['Регистрация','Sign up','Registreeru'],['Клиент','Client','Klient'],['Хост','Host','Host'],
+['Мой аватар','My avatar','Minu avatar'],['Магазин','Shop','Pood'],['Выйти','Log out','Logi välja'],['Выбери игру','Choose a game','Vali mäng'],
+['Красный/зелёный свет','Red light / Green light','Punane/roheline tuli'],['Побег от Девида','Escape from Devid','Põgene Devidi eest'],
+['Кнопка судьбы','Button of Fate','Saatusenupp'],['Царь горы','King of the Hill','Mäekuningas'],['Догонялки','Tag','Kulli'],
+['Оставайся в круге','Stay in the Circle','Püsi ringis'],['Футбол','Football','Jalgpall'],['Начать','Start','Alusta'],
+['← Назад','← Back','← Tagasi'],['Код комнаты','Room code','Toa kood'],['Играть','Play','Mängi'],['Аватар','Avatar','Avatar'],
+['Тело','Body','Keha'],['Голова','Head','Pea'],['Руки','Arms','Käed'],['Ноги','Legs','Jalad'],['Шапка','Hat','Müts'],
+['Без шапки','No hat','Ilma mütsita'],['Колпак','Cone hat','Koonusmüts'],['Цилиндр','Top hat','Silinder'],['Кепка','Cap','Nokkmüts'],
+['Корона','Crown','Kroon'],['Рога','Horns','Sarved'],['Очки','Glasses','Prillid'],['Плащ','Cape','Keep'],['Сохранить','Save','Salvesta'],
+['Запустить раунд','Start round','Alusta vooru'],['Закрыть','Close','Sulge'],['Пассы','Passes','Passid'],['Кастомизация','Customization','Kohandamine'],
+['Ник (латиница, цифры, _)','Username (latin, digits, _)','Kasutajanimi (ladina, numbrid, _)'],
+['Пароль (мин. 6 символов)','Password (min. 6 characters)','Parool (vähemalt 6 märki)'],
+['Привет, ','Hi, ','Tere, '],
+['Ник: 3–16 символов, латиница, цифры или _','Username: 3–16 characters, latin letters, digits or _','Nimi: 3–16 märki, ladina tähed, numbrid või _'],
+['Ник занят','Username taken','Nimi on võetud'],['Неверный ник или пароль','Wrong username or password','Vale nimi või parool'],
+['Пароль короче 6 символов','Password is shorter than 6 characters','Parool on lühem kui 6 märki'],
+['Комната не найдена','Room not found','Tuba ei leitud'],['Код: ','Code: ','Kood: '],['Игроки: ','Players: ','Mängijad: '],['Все','All','Kõik'],
+['Можно ходить, пока ждём старта','You can walk around while waiting','Saad ringi liikuda, kuni ootame algust'],
+['Нет игроков','No players','Mängijaid pole'],['Для MM2 нужно минимум 2 игрока','MM2 needs at least 2 players','MM2 jaoks on vaja vähemalt 2 mängijat'],
+['Собирай золото!','Collect the gold!','Korja kulda!'],['Раунд идёт!','Round in progress!','Voor käib!'],
+['Беги к финишу! На красный замри','Run to the finish! Freeze on red','Jookse finišisse! Punasel seisa'],
+['Выживи 90 секунд! Девид идёт...','Survive 90 seconds! Devid is coming...','Ela üle 90 sekundit! Devid tuleb...'],
+['Держи круг в центре! Толкайся 💥','Hold the center circle! Push 💥','Hoia keskringi! Tõuka 💥'],
+['Догонялки! Не будь водящим',"Tag! Don't be it",'Kulli! Ära ole püüdja'],
+['Оставайся в круге! Толкай других 💥','Stay in the circle! Push others 💥','Püsi ringis! Tõuka teisi 💥'],
+['⚽ Футбол!','⚽ Football!','⚽ Jalgpall!'],['Жми красную кнопку в центре!','Press the red button in the center!','Vajuta keskel punast nuppu!'],
+['Событие закончилось. Жми кнопку!','Event over. Press the button!','Sündmus lõppes. Vajuta nuppu!'],
+[' ударил ',' stabbed ',' pussitas '],[' застрелил убийцу!',' shot the murderer!',' tulistas mõrvarit!'],[' промахнулся!',' missed!',' lasi mööda!'],
+[' пошевелился на красный!',' moved on red!',' liikus punasel!'],[' добежал до финиша!',' reached the finish!',' jõudis finišisse!'],
+['Девид съел всех!','Devid ate everyone!','Devid sõi kõik ära!'],['Девид съел ','Devid ate ','Devid sõi '],[' убил ',' killed ',' tappis '],
+[' ножом!',' with a knife!',' noaga!'],[' вылетел из круга!',' fell out of the circle!',' kukkus ringist välja!'],
+[' теперь водит!'," is now it!",' on nüüd püüdja!'],['ГОЛ! ','GOAL! ','VÄRAV! '],['Красные победили!','Red win!','Punased võitsid!'],
+['Синие победили!','Blue win!','Sinised võitsid!'],['Красные победили ','Red won ','Punased võitsid '],['Синие победили ','Blue won ','Sinised võitsid '],
+['Красные','Red','Punased'],['Синие','Blue','Sinised'],[' забили',' scored',' lõid värava'],['Финал: ','Final: ','Finaal: '],
+[' попал под удар!',' got hit!',' sai pihta!'],[' унесён торнадо!',' was swept away by the tornado!',' viis tornaado minema!'],
+[' сгорел в лаве!',' burned in lava!',' põles laavas!'],[' врезался в стену!',' hit a wall!',' põrkas vastu seina!'],
+[' упал в лаву!',' fell into the lava!',' kukkus laavasse!'],[' похищен НЛО!',' was abducted by a UFO!',' röövis UFO!'],
+['Мирные победили!','Innocents win!','Süütud võitsid!'],['Убийца победил!','The murderer wins!','Mõrvar võitis!'],
+['Победитель: ','Winner: ','Võitja: '],['Все выбыли!','Everyone is out!','Kõik langesid välja!'],['Все вылетели!','Everyone fell out!','Kõik kukkusid välja!'],
+['Все погибли!','Everyone died!','Kõik hukkusid!'],['Время вышло! Победитель: ',"Time's up! Winner: ",'Aeg sai läbi! Võitja: '],
+['Время вышло — мирные победили!',"Time's up — innocents win!",'Aeg sai läbi — süütud võitsid!'],
+['Время вышло — ничья!',"Time's up — draw!",'Aeg sai läbi — viik!'],['Время вышло!',"Time's up!",'Aeg sai läbi!'],
+['Выжившие победили!','Survivors win!','Ellujäänud võitsid!'],['Царь горы: ','King of the Hill: ','Mäekuningas: '],
+['Догонялки: победил ','Tag: winner is ','Kulli: võitis '],['Ничья!','Draw!','Viik!'],
+['👹 Девид охотится!','👹 Devid is hunting!','👹 Devid jahib!'],['🌙 Ночь... Убийца среди вас!','🌙 Night... A murderer is among you!','🌙 Öö... Mõrvar on teie seas!'],
+['☄️ Метеориты!','☄️ Meteors!','☄️ Meteoriidid!'],['🌪 Торнадо!','🌪 Tornado!','🌪 Tornaado!'],['⛈ Гроза!','⛈ Thunderstorm!','⛈ Äike!'],
+['🌋 Извержение вулкана!','🌋 Volcano eruption!','🌋 Vulkaanipurse!'],['🏃 Обби: летающие стены!','🏃 Obby: flying walls!','🏃 Obby: lendavad seinad!'],
+['💰 Денежный дождь! Собирай!','💰 Money rain! Collect it!','💰 Rahavihm! Korja!'],['🧊 Лёд! Скользко!','🧊 Ice! Slippery!','🧊 Jää! Libe!'],
+['🟢 Лава! Беги на платформы!','🟢 Lava! Run to the platforms!','🟢 Laava! Jookse platvormidele!'],['🛸 НЛО похищает!','🛸 UFO abduction!','🛸 UFO röövib!'],
+['Золото: ','Gold: ','Kuld: '],['Монет: ','Coins: ','Münte: '],['Очки: ','Score: ','Punkte: '],
+['Ты УБИЙЦА 🔪 · ','You are the MURDERER 🔪 · ','Sa oled MÕRVAR 🔪 · '],['Ты УБИЙЦА 🔪','You are the MURDERER 🔪','Sa oled MÕRVAR 🔪'],
+['Ты ШЕРИФ 🔫','You are the SHERIFF 🔫','Sa oled ŠERIFF 🔫'],['Ты мирный','You are innocent','Sa oled süütu'],
+[' (ты выбыл)',' (you are out)',' (sa langesid välja)'],['🟢 БЕГИ','🟢 RUN','🟢 JOOKSE'],['🔴 СТОЙ','🔴 STOP','🔴 SEISA'],
+['Беги от Девида!','Run from Devid!','Jookse Devidi eest!'],['🏃 ТЫ ВОДИШЬ! ','🏃 YOU ARE IT! ','🏃 SINA OLED PÜÜDJA! '],
+['Убегай! ','Run away! ','Jookse minema! '],['Не вылети из круга!',"Don't fall out of the circle!",'Ära kuku ringist välja!'],
+['Ты за 🔴','You are 🔴','Sa oled 🔴'],['Ты за 🔵','You are 🔵','Sa oled 🔵'],['🏆 Ты выжил!','🏆 You survived!','🏆 Sa jäid ellu!'],
+['💀 Ты проиграл','💀 You lost','💀 Sa kaotasid'],
+['Купить','Buy','Osta'],['Надеть','Equip','Pane selga'],['Снять','Unequip','Võta ära'],['Куплено!','Purchased!','Ostetud!'],['Куплено','Owned','Ostetud'],
+['Не хватает монет','Not enough coins','Münte ei jätku'],['×2 монет навсегда','×2 coins forever','×2 münti igaveseks'],
+['Буст ×2 на 30 минут','×2 boost for 30 minutes','×2 võimendus 30 minutiks'],
+['Красный ник','Red nickname','Punane nimi'],['Синий ник','Blue nickname','Sinine nimi'],['Зелёный ник','Green nickname','Roheline nimi'],
+['Жёлтый ник','Yellow nickname','Kollane nimi'],['Фиолетовый ник','Purple nickname','Lilla nimi'],['Розовый ник','Pink nickname','Roosa nimi'],
+['Радужный ник','Rainbow nickname','Vikerkaarenimi'],['Нимб','Halo','Halo'],['Крылья','Wings','Tiivad'],['Рюкзак','Backpack','Seljakott'],['Усы','Mustache','Vurrud'],
+['Девид','Devid','Devid'],['Убийца','Murderer','Mõrvar']
+];
+const DICT=Object.fromEntries(L.map(([a,b,c])=>[a,[b,c]])),KEYS=Object.keys(DICT).sort((a,b)=>b.length-a.length);
+function T(s){
+  s=String(s);if(lang==='ru')return s;const i=lang==='en'?0:1;
+  for(const k of KEYS)if(s.includes(k))s=s.split(k).join(DICT[k][i]);
+  return s;
+}
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=T(e.dataset.t));
+  document.querySelectorAll('[data-ph]').forEach(e=>e.placeholder=T(e.dataset.ph));
+  $('lang').value=lang;
+  if(auth.currentUser?.displayName)$('hello').textContent=T('Привет, ')+auth.currentUser.displayName+'!';
+  if(!$('shop').hidden)renderShop();
+}
+$('lang').onchange=e=>{lang=e.target.value;localStorage.setItem('lang',lang);applyLang()};
+applyLang();
 
 /* ---------- Звук ---------- */
 const MUSIC=['sounds/music1.mp3','sounds/music2.mp3','sounds/music3.mp3'];
@@ -35,17 +121,23 @@ function playMusic(){stopMusic();bg=new Audio(MUSIC[Math.floor(Math.random()*MUS
 const mail=u=>u.trim().toLowerCase()+'@mpgame.app';
 async function authDo(reg){
   const u=$('u').value.trim(),p=$('p').value;
-  if(!/^[a-zA-Z0-9_]{3,16}$/.test(u))return $('autherr').textContent='Ник: 3–16 символов, латиница, цифры или _';
+  if(!/^[a-zA-Z0-9_]{3,16}$/.test(u))return $('autherr').textContent=T('Ник: 3–16 символов, латиница, цифры или _');
   try{
     if(reg){const c=await createUserWithEmailAndPassword(auth,mail(u),p);await updateProfile(c.user,{displayName:u});enter(c.user)}
     else await signInWithEmailAndPassword(auth,mail(u),p);
-  }catch(e){$('autherr').textContent={'auth/email-already-in-use':'Ник занят','auth/invalid-credential':'Неверный ник или пароль','auth/weak-password':'Пароль короче 6 символов'}[e.code]||e.code}
+  }catch(e){$('autherr').textContent=T({'auth/email-already-in-use':'Ник занят','auth/invalid-credential':'Неверный ник или пароль','auth/weak-password':'Пароль короче 6 символов'}[e.code]||e.code)}
 }
-async function enter(u){
-  const sn=await get(ref(db,`users/${u.uid}/avatar`));
-  avatar={...DEF,...(sn.val()||{})};
-  $('hello').textContent='Привет, '+u.displayName+'!';
+let me={},unsub,pendingCode=((new URLSearchParams(location.search).get('code')||'').match(/^\d{5}$/)||[null])[0];
+function enter(u){
+  if(unsub)unsub();
+  $('hello').textContent=T('Привет, ')+u.displayName+'!';
   show('menu');
+  unsub=onValue(ref(db,`users/${u.uid}`),sn=>{
+    me=sn.val()||{};avatar={...DEF,...(me.avatar||{})};
+    $('coins').textContent='🪙 '+(me.coins||0);
+    if(!$('shop').hidden)renderShop();
+    if(pendingCode){const c=pendingCode;pendingCode=null;history.replaceState(null,'',location.pathname);$('jc').value=c;show('join');joinGame(c)}
+  });
 }
 onAuthStateChanged(auth,u=>u?(u.displayName&&enter(u)):show('auth'));
 $('login').onclick=()=>authDo(false);
@@ -53,8 +145,66 @@ $('reg').onclick=()=>authDo(true);
 $('bOut').onclick=()=>signOut(auth);
 $('bClient').onclick=()=>show('join');
 $('bHost').onclick=()=>show('hostsetup');
+/* ---------- Монеты и магазин ---------- */
+const SHOP=[
+  ['Пассы',[['x2','×2 монет навсегда',5000],['boost','Буст ×2 на 30 минут',300]]],
+  ['Кастомизация',[
+    ['n_red','Красный ник',500,'#ef4444'],['n_blue','Синий ник',500,'#3b82f6'],['n_green','Зелёный ник',500,'#22c55e'],
+    ['n_yellow','Жёлтый ник',500,'#eab308'],['n_purple','Фиолетовый ник',500,'#a855f7'],['n_pink','Розовый ник',500,'#ec4899'],
+    ['n_rb','Радужный ник',10000,'rainbow'],
+    ['a_halo','Нимб',800],['a_wings','Крылья',1500],['a_pack','Рюкзак',600],['a_stache','Усы',400]]]
+];
+const RB='linear-gradient(90deg,#f00,#fa0,#ff0,#0f0,#0af,#a0f)';
+const mult=()=>(me.owned?.x2?2:1)*((me.boost||0)>Date.now()?2:1);
+function renderShop(){
+  $('coins2').textContent='🪙 '+(me.coins||0);
+  const root=$('shopRows'),own=me.owned||{},now=Date.now();root.innerHTML='';
+  SHOP.forEach(([title,items])=>{
+    const row=document.createElement('div');row.className='shoprow';
+    const h=document.createElement('h3');h.textContent=T(title);
+    const box=document.createElement('div');box.className='items';row.append(h,box);
+    items.forEach(([id,name,price,c])=>{
+      const card=document.createElement('div');card.className='card';
+      const b=document.createElement('b');b.textContent=T(name);
+      if(c==='rainbow')b.style.cssText=`background:${RB};-webkit-background-clip:text;background-clip:text;color:transparent`;
+      else if(c)b.style.color=c;
+      const btn=document.createElement('button');
+      const owned=!!own[id]&&id!=='boost';
+      const on=id[0]==='n'?avatar.nc===c:id[0]==='a'?(avatar.ac||[]).includes(id.slice(2)):false;
+      const left=id==='boost'&&(me.boost||0)>now?` (${Math.ceil((me.boost-now)/60000)} ${MINU[lang]})`:'';
+      if(id==='x2'&&owned){btn.textContent=T('Куплено');btn.disabled=true}
+      else if(owned){btn.textContent=T(on?'Снять':'Надеть');btn.onclick=()=>equip(id,c)}
+      else{btn.textContent=`${T('Купить')} 🪙${price}`+left;btn.onclick=()=>buy(id,price)}
+      card.append(b,btn);box.append(card);
+    });
+    root.append(row);
+  });
+}
+async function buy(id,price){
+  try{
+    const r=await runTransaction(ref(db,`users/${auth.currentUser.uid}`),cur=>{
+      cur=cur||{};if((cur.coins||0)<price)return;
+      cur.coins-=price;cur.owned={...(cur.owned||{}),[id]:true};
+      if(id==='boost')cur.boost=Math.max(Date.now(),cur.boost||0)+1800000;
+      return cur;
+    });
+    $('shopmsg').textContent=T(r.committed?'Куплено!':'Не хватает монет');
+  }catch(e){$('shopmsg').textContent=e.code||'error'}
+}
+async function equip(id,c){
+  if(id[0]==='n')avatar.nc=avatar.nc===c?'':c;
+  else{const k=id.slice(2),a=new Set(avatar.ac||[]);a.has(k)?a.delete(k):a.add(k);avatar.ac=[...a]}
+  await set(ref(db,`users/${auth.currentUser.uid}/avatar`),avatar);
+}
+$('bShop').onclick=()=>{$('shopmsg').textContent='';show('shop');renderShop()};
+$('shopBack').onclick=()=>show('menu');
+
 
 /* ---------- 3D-аватар (руки, ноги, шапки, очки, плащ) ---------- */
+function nickFill(x,nc){
+  if(nc==='rainbow'){const g=x.createLinearGradient(20,0,236,0);['#f00','#fa0','#ff0','#0f0','#0af','#a0f'].forEach((c,i)=>g.addColorStop(i/5,c));return g}
+  return nc||'#fff';
+}
 function makeAvatar(av,name){
   av={...DEF,...av};
   const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c});
@@ -72,10 +222,15 @@ function makeAvatar(av,name){
   if(h==='horns')[-.25,.25].forEach(x=>{const c=new THREE.Mesh(new THREE.ConeGeometry(.12,.5,6),M('#ef4444'));c.position.set(x,2.45,0);c.rotation.z=x>0?-.4:.4;g.add(c)});
   if(+av.gl)B(g,.5,.14,.05,'#000',0,1.95,.33);
   if(+av.cape)B(g,.8,1.1,.06,'#b91c1c',0,1.1,-.3);
+  const ac=Array.isArray(av.ac)?av.ac:Object.values(av.ac||{});
+  if(ac.includes('halo')){const hm=new THREE.Mesh(new THREE.TorusGeometry(.35,.05,8,20),new THREE.MeshBasicMaterial({color:'#fde047'}));hm.rotation.x=Math.PI/2;hm.position.y=2.65;g.add(hm)}
+  if(ac.includes('wings'))[-1,1].forEach(sx=>{const w=B(g,.08,.9,.5,'#e2e8f0',sx*.5,1.45,-.4);w.rotation.z=sx*.4});
+  if(ac.includes('pack'))B(g,.6,.7,.3,'#92400e',0,1.2,-.4);
+  if(ac.includes('stache'))B(g,.4,.08,.06,'#111',0,1.78,.33);
   g.userData.walk=(t,on)=>{const s=on?Math.sin(t*10)*.7:0;arms[0].rotation.x=s;arms[1].rotation.x=-s;legs[0].rotation.x=-s;legs[1].rotation.x=s};
   if(name){
     const c=document.createElement('canvas');c.width=256;c.height=64;
-    const x=c.getContext('2d');x.font='bold 36px sans-serif';x.textAlign='center';x.lineWidth=6;x.strokeStyle='#000';x.fillStyle='#fff';
+    const x=c.getContext('2d');x.font='bold 36px sans-serif';x.textAlign='center';x.lineWidth=6;x.strokeStyle='#000';x.fillStyle=nickFill(x,av.nc);
     x.strokeText(name,128,44);x.fillText(name,128,44);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));
     sp.scale.set(3,.75,1);sp.position.y=3.1;g.add(sp);
@@ -85,7 +240,7 @@ function makeAvatar(av,name){
 
 let pv;
 function drawPrev(){
-  avatar={body:$('cb').value,head:$('ch').value,arms:$('ca').value,legs:$('cl').value,hat:$('hat').value,gl:+$('gl').checked,cape:+$('cp').checked};
+  avatar={...avatar,body:$('cb').value,head:$('ch').value,arms:$('ca').value,legs:$('cl').value,hat:$('hat').value,gl:+$('gl').checked,cape:+$('cp').checked};
   if(!pv){
     pv=new THREE.WebGLRenderer({canvas:$('prev'),antialias:true,alpha:true});
     pv.sc=new THREE.Scene();pv.sc.add(new THREE.HemisphereLight('#fff','#556',2));
@@ -170,13 +325,24 @@ $('bStart').onclick=async()=>{
 
 function runHost(code,game){
   show('hostview');
-  $('codeShow').textContent=`Код: ${code} — ${NAMES[game]}`;
+  $('codeShow').textContent=T('Код: ')+code+' — '+T(NAMES[game]);
   const dark=game==='ed',{r,s,cam,hemi}=scene3d($('cv'),dark);
   const P={},M={},inp={},items=[],path=p=>ref(db,`rooms/${code}/${p}`);
   let phase='lobby',t=0,msg='Можно ходить, пока ждём старта',clock=0,light='green',lt=0,ld=4;
   let walls=[],wm=[],open=null,dv=null,shots=[],snapQ=[],lastSnap=-9,focusI=0,zoom=1,rt;
   const look=new THREE.Vector3(),cl=v=>Math.max(-A+.5,Math.min(A-.5,v));
   cam.position.set(0,34,24);
+  const roomRef=ref(db,`rooms/${code}`),hostUid=auth.currentUser.uid;
+  // после обрыва связи хост заново создаёт комнату; удаление при закрытии страницы — на стороне сервера
+  onValue(ref(db,'.info/connected'),sn=>{if(sn.val()){set(path('host'),hostUid);set(path('game'),game);onDisconnect(roomRef).remove()}});
+  const closeRoom=()=>remove(roomRef);
+  addEventListener('pagehide',closeRoom);
+  document.querySelector('#hostview .back').onclick=async()=>{try{await closeRoom()}catch(e){}location.reload()};
+  let qrOk=false;
+  try{
+    const q=qrcode(0,'M');q.addData(location.origin+location.pathname+'?code='+code);q.make();
+    $('qrimg').src=q.createDataURL(8,2);$('qrtxt').textContent=code;qrOk=true;
+  }catch(e){console.log('QR:',e)}
   const zset=k=>zoom=Math.max(.3,Math.min(2.5,zoom*k));
   $('zin').onclick=()=>zset(.8);$('zout').onclick=()=>zset(1.25);
   $('cv').addEventListener('wheel',e=>zset(e.deltaY>0?1.1:.9));
@@ -198,10 +364,10 @@ function runHost(code,game){
       if(dark){const l=new THREE.PointLight('#ffe9b0',35,16,2);l.position.y=3;M[u].add(l)}
       s.add(M[u]);
     }
-    for(const u in P)if(!v[u]){s.remove(M[u]);delete P[u];delete M[u]}
-    $('plist').textContent='Игроки: '+(Object.values(P).map(p=>p.name).join(', ')||'—');
+    for(const u in P){if(v[u])delete P[u].miss;else if(P[u].miss===undefined)P[u].miss=clock}
+    $('plist').textContent=T('Игроки: ')+(Object.values(P).map(p=>p.name).join(', ')||'—');
   });
-  onValue(path('input'),sn=>Object.assign(inp,sn.val()||{}));
+  onValue(path('input'),sn=>{const v=sn.val()||{};for(const k in inp)if(!v[k])delete inp[k];Object.assign(inp,v)});
 
   const gold=()=>{
     const m=new THREE.Mesh(new THREE.SphereGeometry(.5,12,12),new THREE.MeshLambertMaterial({color:'#facc15'}));
@@ -209,18 +375,27 @@ function runHost(code,game){
   };
   const top=()=>Object.values(P).sort((a,b)=>b.score-a.score)[0]?.name||'—';
   const chance=(p,m)=>Math.max(.05,Math.min(.95,1-Math.hypot(m.x-p.x,m.z-p.z)/26));
+  // награды в монетах: каждый клиент сам зачисляет их себе (с учётом пассов)
+  const payout=()=>{
+    const mx=Math.max(0,...Object.values(P).map(o=>o.score)),sc=p=>p.score>0&&p.score===mx,wn=p=>/^Победитель/.test(msg)&&msg.includes(p.name);
+    const won=p=>({tq:sc(p),kh:sc(p),tg:sc(p),
+      mm2:/ирные победили/.test(msg)?p.role!=='mur':/^Убийца/.test(msg)?p.role==='mur':false,
+      rg:wn(p),ring:wn(p),ed:p.alive,ch:p.alive,
+      fb:msg.startsWith('Красные победили')?p.team===0:msg.startsWith('Синие победили')?p.team===1:false})[game];
+    set(path('awards'),{id:Date.now(),p:Object.fromEntries(Object.entries(P).map(([u,p])=>[u,10+(won(p)?40:0)+Math.floor(p.score*({tq:2,ch:3,kh:.2,tg:.2}[game]||0))]))});
+  };
 
   /* «эпичные кадры» */
   const snap=(cap,x,z,force)=>{if(force||clock-lastSnap>2.5){lastSnap=clock;snapQ.push({cap,x,z})}};
   const recap=()=>{
     if(!shots.length)return;let i=0;
-    const one=()=>{$('rimg').src=shots[i].img;$('rcap').textContent=shots[i].cap;i=(i+1)%shots.length};
-    $('rtitle').textContent=msg;$('recap').hidden=false;one();clearInterval(rt);rt=setInterval(one,2200);
+    const one=()=>{$('rimg').src=shots[i].img;$('rcap').textContent=T(shots[i].cap);i=(i+1)%shots.length};
+    $('rtitle').textContent=T(msg);$('recap').hidden=false;one();clearInterval(rt);rt=setInterval(one,2200);
   };
   $('rclose').onclick=()=>{$('recap').hidden=true;clearInterval(rt)};
   const end=m=>{
     if(phase!=='play')return;
-    phase='end';msg=m;stopMusic();endEv();if(mark)mark.visible=false;snap('Финал: '+m,undefined,undefined,true);setTimeout(recap,1200);
+    phase='end';msg=m;stopMusic();endEv();if(mark)mark.visible=false;payout();snap('Финал: '+m,undefined,undefined,true);setTimeout(recap,1200);
   };
   const timeUp=()=>({tq:'Время вышло! Победитель: '+top(),mm2:'Время вышло — мирные победили!',rg:'Время вышло!',
     ed:Object.values(P).some(p=>p.alive)?'Выжившие победили!':'Девид съел всех!',kh:'Царь горы: '+top(),tg:'Догонялки: победил '+top(),ring:'Время вышло — ничья!',fb:gs[0]>gs[1]?'Красные победили!':gs[1]>gs[0]?'Синие победили!':'Ничья!',ch:topScore()})[game];
@@ -385,6 +560,7 @@ function runHost(code,game){
   const loop=now=>{
     const dt=Math.min((now-prev)/1000,.1);prev=now;clock+=dt;
     for(let q=fxs.length-1;q>=0;q--)if(fxs[q].upd(dt)){s.remove(fxs[q].m);fxs.splice(q,1)}
+    for(const u in P)if(P[u].miss!==undefined&&clock-P[u].miss>20){s.remove(M[u]);delete P[u];delete M[u]}
     for(const u in P){
       const p=P[u],i=inp[u]||{},l=Math.hypot(i.dx||0,i.dz||0);let mv=0;
       if(p.alive&&l>.1){
@@ -400,7 +576,7 @@ function runHost(code,game){
         if(p.kx||p.kz){const dc=Math.pow(.02,dt);p.x+=p.kx*dt;p.z+=p.kz*dt;p.kx*=dc;p.kz*=dc;if(Math.abs(p.kx)<.05&&Math.abs(p.kz)<.05)p.kx=p.kz=0}
         p.x=cl(p.x);p.z=cl(p.z);if(walls.length)collide(p,walls);
       }
-      if((i.act||0)!==p.last){p.last=i.act||0;act(u)}
+      {const ia=i.act||0;if(ia<p.last)p.last=ia;else if(ia!==p.last){p.last=ia;act(u)}}
       M[u].position.set(p.x,0,p.z);M[u].rotation.y=p.a;M[u].scale.y=p.alive?1:.2;M[u].userData.walk(clock,mv);
     }
     if(phase==='play'){
@@ -488,8 +664,8 @@ function runHost(code,game){
     acc+=dt;
     if(acc>.25){
       acc=0;const ps=Object.entries(P).sort((a,b)=>b[1].score-a[1].score),mu=Object.values(P).find(o=>o.role==='mur'&&o.alive);
-      $('focus').textContent='🎯 '+(f?f.name:'Все');
-      $('info').innerHTML=`<div>${msg}${phase==='play'?' · '+Math.ceil(t)+' с':''}</div>`+
+      $('focus').textContent='🎯 '+(f?f.name:T('Все'));$('qr').hidden=!qrOk||phase==='play';
+      $('info').innerHTML=`<div>${T(msg)}${phase==='play'?' · '+Math.ceil(t)+' '+UNIT[lang]:''}</div>`+
         ps.map(([,p])=>`<div>${game==='fb'?(p.team?'🔵 ':'🔴 '):''}${['tq','kh','tg','ch'].includes(game)?Math.floor(p.score)+(p.alive?' — ':' ✖ '):p.alive?'● ':'✖ '}${p.name}</div>`).join('');
       set(path('state'),{phase,t:Math.ceil(t),msg,light,p:Object.fromEntries(ps.map(([u,p])=>[u,{s:Math.floor(p.score),al:p.alive,r:p.role,c:p.role==='sher'&&mu?Math.round(chance(p,mu)*100):0}]))});
     }
@@ -499,14 +675,21 @@ function runHost(code,game){
 }
 
 /* ---------- КЛИЕНТ (пульт) ---------- */
-$('bPlay').onclick=async()=>{
-  const code=$('jc').value.trim(),u=auth.currentUser,rr=p=>ref(db,`rooms/${code}/${p}`);
+async function joinGame(c0){
+  const code=c0||$('jc').value.trim(),u=auth.currentUser,rr=p=>ref(db,`rooms/${code}/${p}`);
   const g=await get(rr('game'));
-  if(!g.exists())return $('joinerr').textContent='Комната не найдена';
+  if(!g.exists())return $('joinerr').textContent=T('Комната не найдена');
   const game=g.val();
+  const joinRoom=()=>{
+    set(rr('players/'+u.uid),{name:u.displayName,av:avatar});
+    onDisconnect(rr('players/'+u.uid)).remove();
+    onDisconnect(rr('input/'+u.uid)).remove();
+  };
   await set(rr('players/'+u.uid),{name:u.displayName,av:avatar});
-  onDisconnect(rr('players/'+u.uid)).remove();
-  onDisconnect(rr('input/'+u.uid)).remove();
+  joinRoom();
+  // если у телефона пропала связь — заново записываемся в комнату
+  onValue(ref(db,'.info/connected'),sn=>{if(sn.val())joinRoom()});
+  $('padBack').onclick=async()=>{try{await remove(rr('players/'+u.uid));await remove(rr('input/'+u.uid))}catch(e){}location.reload()};
   show('pad');$('act').hidden=true;
 
   let dx=0,dz=0,act=0,last=0;
@@ -545,7 +728,21 @@ $('bPlay').onclick=async()=>{
     const lab={mm2:m.r==='sher'?'🔫 '+(m.c||0)+'%':m.r==='mur'?'🔪':'',ch:m.r==='mur'?'🔪':'🔴',kh:'💥',ring:'💥',fb:'⚽'}[game]||'';
     $('act').hidden=!(play&&m.al!==false&&lab);$('act').textContent=lab;
     
-    $('pinfo').textContent=[s.msg,play?s.t+' с':'',extra].filter(Boolean).join(' · ');
+    $('pinfo').textContent=T([s.msg,play?s.t+' '+UNIT[lang]:'',extra].filter(Boolean).join(' · '));
   });
-  onValue(rr('host'),sn=>{if(!sn.exists())location.reload()});
-};
+  onValue(rr('awards'),sn=>{
+    const a=sn.val();if(!a||localStorage.getItem('aw'+code)===String(a.id))return;
+    localStorage.setItem('aw'+code,String(a.id));
+    const base=a.p?.[u.uid];if(!base)return;
+    const k=mult(),gain=base*k;
+    runTransaction(ref(db,`users/${u.uid}/coins`),c=>(c||0)+gain);
+    $('gain').textContent=`+${gain} 🪙`+(k>1?` (×${k})`:'');setTimeout(()=>{$('gain').textContent=''},6000);
+  });
+  // хост пропал: ждём 25 секунд (вдруг это обрыв связи), потом выходим
+  let gone=null;
+  onValue(rr('host'),sn=>{
+    if(sn.exists()){clearTimeout(gone);gone=null;joinRoom()}
+    else if(!gone)gone=setTimeout(()=>location.reload(),25000);
+  });
+}
+$('bPlay').onclick=()=>joinGame();
