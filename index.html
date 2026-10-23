@@ -5,9 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Arena 3D</title>
 <link rel="stylesheet" href="style.css">
-<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
+<div id="boot">
+  <div id="bootmsg">Загрузка… / Loading…</div>
+  <div id="bootfail">Не удалось загрузить игру. Проверь интернет.<br>Couldn't load the game. Check your connection.</div>
+  <button onclick="location.reload()">Обновить / Reload</button>
+</div>
+<script>
+  // если скрипты игры не загрузились (сбой CDN/сети), показываем кнопку и один раз сами обновляем страницу
+  function bootFail(){
+    var b=document.getElementById('boot');if(b)b.className='fail';
+    try{if(!sessionStorage.getItem('retried')){sessionStorage.setItem('retried','1');setTimeout(function(){location.reload()},1500)}}catch(e){}
+  }
+  window.bootTimer=setTimeout(bootFail,12000);
+</script>
 <select id="lang"><option value="ru">Русский</option><option value="en">English</option><option value="et">Eesti</option></select>
 
 <section id="auth" class="screen" hidden>
@@ -90,12 +103,18 @@
 <section id="hostview" class="screen" hidden>
   <canvas id="cv"></canvas>
   <div id="hud">
-    <button class="back alt" data-t="← Назад">← Назад</button>
-    <b id="codeShow"></b>
-    <div id="plist"></div>
+    <div id="hudTop">
+      <button class="back alt" data-t="← Назад">← Назад</button>
+      <b id="codeShow"></b>
+      <button id="hudToggle" class="alt">☰</button>
+    </div>
     <button id="startRound" data-t="Запустить раунд">Запустить раунд</button>
-    <div class="row"><button id="focus" class="alt">🎯</button><button id="zout" class="alt">−</button><button id="zin" class="alt">+</button></div>
-    <div id="info"></div>
+    <div id="status"></div>
+    <div id="hudBody">
+      <div id="plist"></div>
+      <div class="row"><button id="focus" class="alt">🎯</button><button id="zout" class="alt">−</button><button id="zin" class="alt">+</button></div>
+      <div id="info"></div>
+    </div>
   </div>
   <div id="qr" hidden><img id="qrimg" alt="QR"><div id="qrtxt"></div></div>
   <div id="recap" hidden>
@@ -115,6 +134,6 @@
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script type="module" src="main.js"></script>
+<script type="module" src="main.js" onerror="bootFail()"></script>
 </body>
 </html>
