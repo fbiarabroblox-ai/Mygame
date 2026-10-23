@@ -8,99 +8,113 @@
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
+<select id="lang"><option value="ru">Русский</option><option value="en">English</option><option value="et">Eesti</option></select>
 
 <section id="auth" class="screen" hidden>
   <h1>Arena 3D</h1>
-  <input id="u" placeholder="Ник (латиница, цифры, _)" autocomplete="username">
-  <input id="p" type="password" placeholder="Пароль (мин. 6 символов)" autocomplete="current-password">
-  <div class="row"><button id="login">Войти</button><button id="reg" class="alt">Регистрация</button></div>
+  <input id="u" placeholder="Ник (латиница, цифры, _)" data-ph="Ник (латиница, цифры, _)" autocomplete="username">
+  <input id="p" type="password" placeholder="Пароль (мин. 6 символов)" data-ph="Пароль (мин. 6 символов)" autocomplete="current-password">
+  <div class="row"><button id="login" data-t="Войти">Войти</button><button id="reg" class="alt" data-t="Регистрация">Регистрация</button></div>
   <p id="autherr" class="err"></p>
 </section>
 
 <section id="menu" class="screen" hidden>
   <h1 id="hello"></h1>
-  <button id="bClient">Клиент</button>
-  <button id="bHost">Хост</button>
-  <button id="bAv" class="alt">Мой аватар</button>
-  <button id="bOut" class="alt">Выйти</button>
+  <div id="coins" class="coins">🪙 0</div>
+  <button id="bClient" data-t="Клиент">Клиент</button>
+  <button id="bHost" data-t="Хост">Хост</button>
+  <button id="bShop" data-t="Магазин">Магазин</button>
+  <button id="bAv" class="alt" data-t="Мой аватар">Мой аватар</button>
+  <button id="bOut" class="alt" data-t="Выйти">Выйти</button>
+</section>
+
+<section id="shop" class="screen" hidden>
+  <h2 data-t="Магазин">Магазин</h2>
+  <div id="coins2" class="coins"></div>
+  <p id="shopmsg" class="err"></p>
+  <div id="shopRows"></div>
+  <button id="shopBack" class="alt" data-t="← Назад">← Назад</button>
 </section>
 
 <section id="hostsetup" class="screen" hidden>
-  <h2>Выбери игру</h2>
+  <h2 data-t="Выбери игру">Выбери игру</h2>
   <select id="gamesel">
     <option value="tq">Treasure Quest</option>
     <option value="mm2">MM2</option>
-    <option value="rg">Красный/зелёный свет</option>
-    <option value="ed">Побег от Девида</option>
-    <option value="ch">Кнопка судьбы</option>
-    <option value="kh">Царь горы</option>
-    <option value="tg">Догонялки</option>
-    <option value="ring">Оставайся в круге</option>
-    <option value="fb">Футбол</option>
+    <option value="rg" data-t="Красный/зелёный свет">Красный/зелёный свет</option>
+    <option value="ed" data-t="Побег от Девида">Побег от Девида</option>
+    <option value="ch" data-t="Кнопка судьбы">Кнопка судьбы</option>
+    <option value="kh" data-t="Царь горы">Царь горы</option>
+    <option value="tg" data-t="Догонялки">Догонялки</option>
+    <option value="ring" data-t="Оставайся в круге">Оставайся в круге</option>
+    <option value="fb" data-t="Футбол">Футбол</option>
   </select>
-  <button id="bStart">Начать</button>
-  <button class="back alt">← Назад</button>
+  <button id="bStart" data-t="Начать">Начать</button>
+  <button class="back alt" data-t="← Назад">← Назад</button>
 </section>
 
 <section id="join" class="screen" hidden>
-  <h2>Код комнаты</h2>
+  <h2 data-t="Код комнаты">Код комнаты</h2>
   <input id="jc" inputmode="numeric" maxlength="5" placeholder="12345">
-  <button id="bPlay">Играть</button>
-  <button class="back alt">← Назад</button>
+  <button id="bPlay" data-t="Играть">Играть</button>
+  <button class="back alt" data-t="← Назад">← Назад</button>
   <p id="joinerr" class="err"></p>
 </section>
 
 <section id="avatar" class="screen" hidden>
-  <h2>Аватар</h2>
+  <h2 data-t="Аватар">Аватар</h2>
   <canvas id="prev" width="240" height="240"></canvas>
   <div class="grid">
-    <label>Тело <input id="cb" type="color"></label>
-    <label>Голова <input id="ch" type="color"></label>
-    <label>Руки <input id="ca" type="color"></label>
-    <label>Ноги <input id="cl" type="color"></label>
+    <label><span data-t="Тело">Тело</span> <input id="cb" type="color"></label>
+    <label><span data-t="Голова">Голова</span> <input id="ch" type="color"></label>
+    <label><span data-t="Руки">Руки</span> <input id="ca" type="color"></label>
+    <label><span data-t="Ноги">Ноги</span> <input id="cl" type="color"></label>
   </div>
-  <label>Шапка
+  <label><span data-t="Шапка">Шапка</span>
     <select id="hat">
-      <option value="none">Без шапки</option>
-      <option value="cone">Колпак</option>
-      <option value="cube">Цилиндр</option>
-      <option value="cap">Кепка</option>
-      <option value="crown">Корона</option>
-      <option value="horns">Рога</option>
+      <option value="none" data-t="Без шапки">Без шапки</option>
+      <option value="cone" data-t="Колпак">Колпак</option>
+      <option value="cube" data-t="Цилиндр">Цилиндр</option>
+      <option value="cap" data-t="Кепка">Кепка</option>
+      <option value="crown" data-t="Корона">Корона</option>
+      <option value="horns" data-t="Рога">Рога</option>
     </select>
   </label>
   <div class="row">
-    <label><input id="gl" type="checkbox"> Очки</label>
-    <label><input id="cp" type="checkbox"> Плащ</label>
+    <label><input id="gl" type="checkbox"> <span data-t="Очки">Очки</span></label>
+    <label><input id="cp" type="checkbox"> <span data-t="Плащ">Плащ</span></label>
   </div>
-  <div class="row"><button id="bSave">Сохранить</button><button class="back alt">← Назад</button></div>
+  <div class="row"><button id="bSave" data-t="Сохранить">Сохранить</button><button class="back alt" data-t="← Назад">← Назад</button></div>
 </section>
 
 <section id="hostview" class="screen" hidden>
   <canvas id="cv"></canvas>
   <div id="hud">
-    <button class="back alt">← Назад</button>
+    <button class="back alt" data-t="← Назад">← Назад</button>
     <b id="codeShow"></b>
     <div id="plist"></div>
-    <button id="startRound">Запустить раунд</button>
-    <div class="row"><button id="focus" class="alt">🎯 Все</button><button id="zout" class="alt">−</button><button id="zin" class="alt">+</button></div>
+    <button id="startRound" data-t="Запустить раунд">Запустить раунд</button>
+    <div class="row"><button id="focus" class="alt">🎯</button><button id="zout" class="alt">−</button><button id="zin" class="alt">+</button></div>
     <div id="info"></div>
   </div>
+  <div id="qr" hidden><img id="qrimg" alt="QR"><div id="qrtxt"></div></div>
   <div id="recap" hidden>
     <h2 id="rtitle"></h2>
     <img id="rimg" alt="">
     <p id="rcap"></p>
-    <button id="rclose">Закрыть</button>
+    <button id="rclose" data-t="Закрыть">Закрыть</button>
   </div>
 </section>
 
 <section id="pad" class="screen" hidden>
   <button id="padBack" class="back alt">←</button>
   <div id="pinfo"></div>
+  <div id="gain"></div>
   <div id="stick"><div id="knob"></div></div>
   <button id="act" hidden>🔪</button>
 </section>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script type="module" src="main.js"></script>
 </body>
 </html>
