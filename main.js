@@ -7,7 +7,7 @@ import {firebaseConfig} from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
 const $=id=>document.getElementById(id),A=20,SPEED=7,N=10,CS=4;
 clearTimeout(window.bootTimer);$('boot').hidden=true;try{sessionStorage.removeItem('retried')}catch(e){}
-const NAMES={tq:'Treasure Quest',mm2:'MM2',rg:'Красный/зелёный свет',ed:'Побег от Девида',ch:'Кнопка судьбы',kh:'Царь горы',tg:'Догонялки',ring:'Оставайся в круге',fb:'Футбол'};
+const NAMES={tq:'Treasure Quest',mm2:'MM2',rg:'Красный/зелёный свет',ed:'Побег от Девида',ch:'Кнопка судьбы',kh:'Царь горы',tg:'Догонялки',ring:'Оставайся в круге',fb:'Футбол',hp:'Картошка',ff:'Падающий пол',ctf:'Захват флага'};
 const show=id=>document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);
 const R=(a,b)=>a+Math.random()*(b-a);
 const esc=s=>String(s).replace(/[<>&"]/g,'');
@@ -92,6 +92,14 @@ const L=[
 ['Красный ник','Red nickname','Punane nimi'],['Синий ник','Blue nickname','Sinine nimi'],['Зелёный ник','Green nickname','Roheline nimi'],
 ['Жёлтый ник','Yellow nickname','Kollane nimi'],['Фиолетовый ник','Purple nickname','Lilla nimi'],['Розовый ник','Pink nickname','Roosa nimi'],
 ['Радужный ник','Rainbow nickname','Vikerkaarenimi'],['Нимб','Halo','Halo'],['Крылья','Wings','Tiivad'],['Рюкзак','Backpack','Seljakott'],['Усы','Mustache','Vurrud'],
+['Картошка','Hot Potato','Kuum kartul'],['Падающий пол','Falling Floor','Kukkuv põrand'],['Захват флага','Capture the Flag','Lipu vallutamine'],
+['💣 Картошка! Передай бомбу касанием!','💣 Hot potato! Pass the bomb by touching!','💣 Kuum kartul! Anna pomm puudutusega edasi!'],
+[' взорвался!',' exploded!',' plahvatas!'],[' получил бомбу!',' got the bomb!',' sai pommi!'],
+['🧱 Пол рушится! Стой на плитках','🧱 The floor is collapsing! Stay on the tiles','🧱 Põrand variseb! Püsi plaatidel'],
+[' упал в пропасть!',' fell into the abyss!',' kukkus kuristikku!'],
+['🚩 Укради флаг врага и принеси на свою базу!','🚩 Steal the enemy flag and bring it to your base!','🚩 Varasta vaenlase lipp ja too see oma baasi!'],
+[' украл флаг!',' stole the flag!',' varastas lipu!'],[' вернул флаг!',' returned the flag!',' tõi lipu tagasi!'],[' захватил флаг!',' captured the flag!',' vallutas lipu!'],
+['💣 У ТЕБЯ БОМБА! Передай!','💣 YOU HAVE THE BOMB! Pass it!','💣 SINUL ON POMM! Anna edasi!'],['Убегай от бомбы!','Run from the bomb!','Jookse pommi eest!'],['Стой на плитках!','Stay on the tiles!','Püsi plaatidel!'],
 ['Девид','Devid','Devid'],['Убийца','Murderer','Mõrvar']
 ];
 const DICT=Object.fromEntries(L.map(([a,b,c])=>[a,[b,c]])),KEYS=Object.keys(DICT).sort((a,b)=>b.length-a.length);
@@ -392,7 +400,8 @@ function runHost(code,game){
   // награды в монетах: каждый клиент сам зачисляет их себе (с учётом пассов)
   const payout=()=>{
     const mx=Math.max(0,...Object.values(P).map(o=>o.score)),sc=p=>p.score>0&&p.score===mx,wn=p=>/^Победитель/.test(msg)&&msg.includes(p.name);
-    const won=p=>({tq:sc(p),kh:sc(p),tg:sc(p),
+    const tw=p=>msg.startsWith('Красные победили')?p.team===0:msg.startsWith('Синие победили')?p.team===1:false;
+    const won=p=>({ctf:tw(p),hp:p.alive,ff:p.alive,tq:sc(p),kh:sc(p),tg:sc(p),
       mm2:/ирные победили/.test(msg)?p.role!=='mur':/^Убийца/.test(msg)?p.role==='mur':false,
       rg:wn(p),ring:wn(p),ed:p.alive,ch:p.alive,
       fb:msg.startsWith('Красные победили')?p.team===0:msg.startsWith('Синие победили')?p.team===1:false})[game];
@@ -412,7 +421,7 @@ function runHost(code,game){
     phase='end';msg=m;stopMusic();endEv();if(mark)mark.visible=false;payout();snap('Финал: '+m,undefined,undefined,true);setTimeout(recap,1200);
   };
   const timeUp=()=>({tq:'Время вышло! Победитель: '+top(),mm2:'Время вышло — мирные победили!',rg:'Время вышло!',
-    ed:Object.values(P).some(p=>p.alive)?'Выжившие победили!':'Девид съел всех!',kh:'Царь горы: '+top(),tg:'Догонялки: победил '+top(),ring:'Время вышло — ничья!',fb:gs[0]>gs[1]?'Красные победили!':gs[1]>gs[0]?'Синие победили!':'Ничья!',ch:topScore()})[game];
+    ed:Object.values(P).some(p=>p.alive)?'Выжившие победили!':'Девид съел всех!',kh:'Царь горы: '+top(),tg:'Догонялки: победил '+top(),ring:'Время вышло — ничья!',fb:gs[0]>gs[1]?'Красные победили!':gs[1]>gs[0]?'Синие победили!':'Ничья!',ch:topScore(),hp:'Время вышло — ничья!',ff:Object.values(P).some(p=>p.alive)?'Выжившие победили!':'Все выбыли!',ctf:gs[0]>gs[1]?'Красные победили!':gs[1]>gs[0]?'Синие победили!':'Ничья!'})[game];
 
   const tracer=(a,b)=>{
     const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,1.5,a.z),new THREE.Vector3(b.x,1.5,b.z)]),new THREE.LineBasicMaterial({color:'#fde047'}));
@@ -517,8 +526,97 @@ function runHost(code,game){
   const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;if(mon){s.remove(mon.m);mon=null}fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
   const press=p=>{if(p.role==='mur'){p.cd=clock+1;for(const q in P){const o=P[q];if(o!==p&&o.alive&&Math.hypot(o.x-p.x,o.z-p.z)<3)kill(o,p.name+' убил '+o.name+' ножом!')}return}if(ev||clock<evAt||Math.hypot(p.x,p.z)>4)return;p.cd=clock+1;startEv(EVS[Math.floor(Math.random()*EVS.length)])};
   // толчок (царь горы, круг) и удар по мячу (футбол)
-  const push=p=>{p.cd=clock+1.2;for(const q in P){const o=P[q];if(o===p||!o.alive)continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);if(d<3.2&&d>.01){o.kx=dx/d*20;o.kz=dz/d*20}}};
+  const push=p=>{p.cd=clock+1.2;for(const q in P){const o=P[q];if(o===p||!o.alive||(game==='ctf'&&o.team===p.team))continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);if(d<3.2&&d>.01){o.kx=dx/d*20;o.kz=dz/d*20}}};
   const kick=p=>{const dx=ball.position.x-p.x,dz=ball.position.z-p.z,d=Math.hypot(dx,dz);p.cd=clock+.5;if(d<3.2&&d>.01){bv.x=dx/d*22;bv.z=dz/d*22}};
+  /* ---------- Картошка / Падающий пол / Захват флага ---------- */
+  let bombU=null,fuse=0,bombCd=0,tiles=[],holes=[],ffEl=0,ffT=2,flags=[];
+  const blast=(x,z)=>{const e=mk(3,'#f97316',.8);e.position.set(x,.08,z);let tt=0;addfx(e,d=>{tt+=d;e.scale.setScalar(1+tt*2);e.material.opacity=Math.max(0,.8-tt*1.6);return tt>.5})};
+  const giveBomb=u=>{bombU=u;bombCd=clock+1.2;fuse=R(8,13);for(const q in P)if(P[q].role==='bomb')P[q].role='inn';if(P[u])P[u].role='bomb'};
+  if(game==='hp'){mark=new THREE.Mesh(new THREE.SphereGeometry(.5,14,14),new THREE.MeshBasicMaterial({color:'#111111'}));mark.visible=false;s.add(mark)}
+  const hpTick=dt=>{
+    const al=Object.entries(P).filter(([,p])=>p.alive);
+    if(!P[bombU]||!P[bombU].alive){if(al.length)giveBomb(al[Math.floor(Math.random()*al.length)][0])}
+    const h=P[bombU];if(!h)return;
+    mark.visible=true;mark.position.set(h.x,3.9,h.z);
+    fuse-=dt;mark.material.color.set(Math.floor(clock*(2+10/Math.max(fuse,.5)))%2?'#ef4444':'#111111');
+    if(clock>bombCd)for(const [u,o] of al)if(u!==bombU&&Math.hypot(o.x-h.x,o.z-h.z)<1.7){h.role='inn';giveBomb(u);snap(o.name+' получил бомбу!',o.x,o.z);break}
+    if(fuse<=0){
+      h.alive=false;sfx('kill');blast(h.x,h.z);snap(h.name+' взорвался!',h.x,h.z);
+      const rest=al.filter(([u])=>u!==bombU);
+      if(rest.length)giveBomb(rest[Math.floor(Math.random()*rest.length)][0]);
+    }
+    const n=Object.values(P).filter(p=>p.alive).length;
+    if(n===0)end('Все выбыли!');
+    else if(n===1&&Object.keys(P).length>1)end('Победитель: '+Object.values(P).find(p=>p.alive).name+'!');
+  };
+
+  const TS=5,TN=8;
+  const buildFloor=()=>{
+    tiles.forEach(o=>s.remove(o.m));holes.forEach(h=>s.remove(h));tiles=[];holes=[];
+    for(let i=0;i<TN;i++)for(let j=0;j<TN;j++){
+      const base=(i+j)%2?'#475569':'#64748b',m=new THREE.Mesh(new THREE.BoxGeometry(TS-.2,.3,TS-.2),new THREE.MeshLambertMaterial({color:base}));
+      const x=-A+i*TS+TS/2,z=-A+j*TS+TS/2;m.position.set(x,.15,z);s.add(m);tiles.push({m,x,z,st:0,t:0,base});
+    }
+  };
+  if(game==='ff')buildFloor();
+  const tileAt=p=>tiles[Math.max(0,Math.min(TN-1,Math.floor((p.x+A)/TS)))*TN+Math.max(0,Math.min(TN-1,Math.floor((p.z+A)/TS)))];
+  const ffTick=dt=>{
+    ffEl+=dt;ffT-=dt;
+    if(ffT<=0){
+      ffT=Math.max(.9,3-ffEl/40);
+      const free=tiles.filter(o=>o.st===0),k=Math.min(free.length,1+Math.floor(ffEl/20)+(Math.random()<.5?1:0));
+      for(let n=0;n<k;n++){const o=free.splice(Math.floor(Math.random()*free.length),1)[0];if(o){o.st=1;o.t=0}}
+    }
+    tiles.forEach(o=>{
+      if(o.st===1){
+        o.t+=dt;o.m.material.color.set(Math.floor(o.t*8)%2?'#ef4444':o.base);o.m.position.x=o.x+Math.sin(o.t*60)*.05;
+        if(o.t>1.2){
+          o.st=2;o.t=0;
+          const h=new THREE.Mesh(new THREE.PlaneGeometry(TS-.2,TS-.2),new THREE.MeshBasicMaterial({color:'#020617'}));
+          h.rotation.x=-Math.PI/2;h.position.set(o.x,.06,o.z);s.add(h);holes.push(h);
+        }
+      }else if(o.st===2){
+        o.t+=dt;o.m.position.y=.15-o.t*14;o.m.rotation.x+=dt*3;if(o.t>1){s.remove(o.m);o.st=3}
+      }
+    });
+    for(const u in P){const p=P[u];if(p.alive&&tileAt(p).st>=2){p.alive=false;sfx('kill');snap(p.name+' упал в пропасть!',p.x,p.z)}}
+    const al=Object.values(P).filter(p=>p.alive);
+    if(al.length<=1&&Object.keys(P).length>1)end(al[0]?'Победитель: '+al[0].name+'!':'Все выбыли!');
+  };
+
+  const mkFlag=c=>{
+    const g=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,3,8),new THREE.MeshLambertMaterial({color:'#e5e7eb'})),
+      ban=new THREE.Mesh(new THREE.BoxGeometry(1.3,.8,.08),new THREE.MeshBasicMaterial({color:c}));
+    pole.position.y=1.5;ban.position.set(.65,2.5,0);g.add(pole,ban);return g;
+  };
+  if(game==='ctf')[[17,'#ef4444'],[-17,'#3b82f6']].forEach(([z,c],team)=>{
+    const m=mkFlag(c);m.position.set(0,0,z);s.add(m);disc(3,c,.35).position.set(0,.05,z);flags[team]={home:{x:0,z},m,carrier:null};
+  });
+  const teamUp=ids=>ids.forEach((u,k)=>{
+    const p=P[u];p.team=k%2;p.role=p.team?'b':'r';
+    M[u].children.filter(c=>c.userData.disc).forEach(c=>M[u].remove(c));
+    const d=mk(.9,p.team?'#3b82f6':'#ef4444',1);d.position.y=.07;d.userData.disc=1;M[u].add(d);
+  });
+  const ctfTick=()=>{
+    for(let f=0;f<2;f++){
+      const fl=flags[f],e=1-f,pl=Object.values(P);
+      const home=()=>{fl.carrier=null;fl.m.position.set(fl.home.x,0,fl.home.z)};
+      if(fl.carrier&&(!fl.carrier.alive||!pl.includes(fl.carrier)))home();
+      if(!fl.carrier){
+        for(const p of pl)if(p.alive&&p.team===e&&Math.hypot(p.x-fl.home.x,p.z-fl.home.z)<1.8){fl.carrier=p;snap(p.name+' украл флаг!',p.x,p.z);break}
+      }else{
+        const c=fl.carrier;fl.m.position.set(c.x,2.2,c.z);
+        const tg=pl.find(q=>q.alive&&q.team===f&&Math.hypot(q.x-c.x,q.z-c.z)<1.7);
+        if(tg){snap(tg.name+' вернул флаг!',c.x,c.z);c.kx=R(-15,15);c.kz=R(-15,15);home()}
+        else if(!flags[e].carrier&&Math.hypot(c.x-flags[e].home.x,c.z-flags[e].home.z)<3){
+          gs[e]++;snap(c.name+' захватил флаг!',c.x,c.z);home();
+          if(gs[e]>=3)end((e?'Синие':'Красные')+' победили '+Math.max(...gs)+':'+Math.min(...gs));
+        }
+      }
+    }
+    if(phase==='play')msg=`🚩 Красные ${gs[0]} : ${gs[1]} Синие`;
+  };
+
 
 
   $('startRound').onclick=()=>{
@@ -551,13 +649,20 @@ function runHost(code,game){
       });
     }
     if(game==='ch'){t=150;evAt=clock+3;msg='Жми красную кнопку в центре!'}
+    if(game==='hp'){t=180;msg='💣 Картошка! Передай бомбу касанием!';bombCd=0;giveBomb(ids[Math.floor(Math.random()*ids.length)])}
+    if(game==='ff'){t=150;msg='🧱 Пол рушится! Стой на плитках';ffEl=0;ffT=2.5;buildFloor()}
+    if(game==='ctf'){
+      gs=[0,0];t=150;msg='🚩 Укради флаг врага и принеси на свою базу!';teamUp(ids);
+      ids.forEach(u=>{P[u].x=R(-8,8);P[u].z=P[u].team?-14:14});
+      flags.forEach(f=>{f.carrier=null;f.m.position.set(f.home.x,0,f.home.z)});
+    }
     phase='play';playMusic();
   };
 
   /* MM2: убийца бьёт ножом рядом; шериф стреляет в убийцу, шанс зависит от расстояния */
   const act=u=>{
     const p=P[u];
-    if(phase!=='play'||!p.alive||clock<p.cd)return;if(game==='kh'||game==='ring')return push(p);if(game==='fb')return kick(p);if(game==='ch')return press(p);if(game!=='mm2')return;
+    if(phase!=='play'||!p.alive||clock<p.cd)return;if(game==='kh'||game==='ring'||game==='ctf')return push(p);if(game==='fb')return kick(p);if(game==='ch')return press(p);if(game!=='mm2')return;
     if(p.role==='mur'){
       p.cd=clock+1;
       for(const q in P){const o=P[q];if(q!==u&&o.alive&&Math.hypot(o.x-p.x,o.z-p.z)<3){o.alive=false;sfx('kill');snap(p.name+' ударил '+o.name,o.x,o.z)}}
@@ -580,7 +685,7 @@ function runHost(code,game){
       if(p.alive&&l>.1){
         if(phase==='play'&&game==='rg'&&light==='red'&&lt>.8){p.alive=false;snap(p.name+' пошевелился на красный!',p.x,p.z)}
         else{
-          const k=(game==='rg'?SPEED*.1:SPEED*(game==='tg'&&it===u?1.12:1))*(ice?0:1)*dt/Math.max(l,1);
+          const k=(game==='rg'?SPEED*.1:SPEED*((game==='tg'&&it===u)||(game==='hp'&&bombU===u)?1.12:1))*(ice?0:1)*dt/Math.max(l,1);
           p.x=cl(p.x+i.dx*k);p.z=cl(p.z+i.dz*k);p.a=Math.atan2(i.dx,i.dz);mv=1;
           if(walls.length)collide(p,walls);
         }
@@ -656,6 +761,9 @@ function runHost(code,game){
         btn.material.color.set(ev||clock<evAt?'#6b7280':'#dc2626');
         if(!Object.values(P).some(p=>p.alive))end('Все погибли!');
       }
+      if(game==='hp')hpTick(dt);
+      if(game==='ff')ffTick(dt);
+      if(game==='ctf')ctfTick();
       t-=dt;if(t<=0)end(timeUp());
     }
 
@@ -680,7 +788,7 @@ function runHost(code,game){
       acc=0;const ps=Object.entries(P).sort((a,b)=>b[1].score-a[1].score),mu=Object.values(P).find(o=>o.role==='mur'&&o.alive);
       $('focus').textContent='🎯 '+(f?f.name:T('Все'));$('qr').hidden=!qrOk||phase==='play';$('status').textContent=T(msg)+(phase==='play'?' · '+Math.ceil(t)+' '+UNIT[lang]:'');
       $('info').innerHTML=`<div>${T(msg)}${phase==='play'?' · '+Math.ceil(t)+' '+UNIT[lang]:''}</div>`+
-        ps.map(([,p])=>`<div>${game==='fb'?(p.team?'🔵 ':'🔴 '):''}${['tq','kh','tg','ch'].includes(game)?Math.floor(p.score)+(p.alive?' — ':' ✖ '):p.alive?'● ':'✖ '}${p.name}</div>`).join('');
+        ps.map(([,p])=>`<div>${game==='fb'||game==='ctf'?(p.team?'🔵 ':'🔴 '):''}${['tq','kh','tg','ch'].includes(game)?Math.floor(p.score)+(p.alive?' — ':' ✖ '):p.alive?'● ':'✖ '}${p.name}</div>`).join('');
       set(path('state'),{phase,t:Math.ceil(t),msg,light,p:Object.fromEntries(ps.map(([u,p])=>[u,{s:Math.floor(p.score),al:p.alive,r:p.role,c:p.role==='sher'&&mu?Math.round(chance(p,mu)*100):0}]))});
     }
     requestAnimationFrame(loop);
@@ -736,10 +844,10 @@ async function joinGame(c0){
     const dead=m.al===false?' (ты выбыл)':'';
     const role={mur:'Ты УБИЙЦА 🔪',sher:'Ты ШЕРИФ 🔫',inn:'Ты мирный'}[m.r]||'';
     const sc=Math.floor(m.s||0),fin=s.phase==='end';
-    const X={tq:'Золото: '+sc,mm2:role+dead,rg:(s.light==='green'?'🟢 БЕГИ':'🔴 СТОЙ')+dead,ed:'Беги от Девида!'+dead,ch:(m.r==='mur'?'Ты УБИЙЦА 🔪 · ':'')+'Монет: '+sc+dead,kh:'Очки: '+sc,tg:(m.r==='it'?'🏃 ТЫ ВОДИШЬ! ':'Убегай! ')+sc,ring:'Не вылети из круга!'+dead,fb:m.r==='r'?'Ты за 🔴':'Ты за 🔵'};
+    const X={tq:'Золото: '+sc,mm2:role+dead,rg:(s.light==='green'?'🟢 БЕГИ':'🔴 СТОЙ')+dead,ed:'Беги от Девида!'+dead,ch:(m.r==='mur'?'Ты УБИЙЦА 🔪 · ':'')+'Монет: '+sc+dead,kh:'Очки: '+sc,tg:(m.r==='it'?'🏃 ТЫ ВОДИШЬ! ':'Убегай! ')+sc,ring:'Не вылети из круга!'+dead,fb:m.r==='r'?'Ты за 🔴':'Ты за 🔵',ctf:m.r==='r'?'Ты за 🔴':'Ты за 🔵',hp:(m.r==='bomb'?'💣 У ТЕБЯ БОМБА! Передай!':'Убегай от бомбы!')+dead,ff:'Стой на плитках!'+dead};
     const extra=play?X[game]:fin&&game==='ed'?(m.al?'🏆 Ты выжил!':'💀 Ты проиграл'):['tq','ch','kh','tg'].includes(game)?X[game]:'';
     document.body.style.background=game==='rg'&&play?(s.light==='green'?'#14532d':'#7f1d1d'):'#0f172a';
-    const lab={mm2:m.r==='sher'?'🔫 '+(m.c||0)+'%':m.r==='mur'?'🔪':'',ch:m.r==='mur'?'🔪':'🔴',kh:'💥',ring:'💥',fb:'⚽'}[game]||'';
+    const lab={mm2:m.r==='sher'?'🔫 '+(m.c||0)+'%':m.r==='mur'?'🔪':'',ch:m.r==='mur'?'🔪':'🔴',kh:'💥',ring:'💥',fb:'⚽',ctf:'💥'}[game]||'';
     $('act').hidden=!(play&&m.al!==false&&lab);$('act').textContent=lab;
     
     $('pinfo').textContent=T([s.msg,play?s.t+' '+UNIT[lang]:'',extra].filter(Boolean).join(' · '));
