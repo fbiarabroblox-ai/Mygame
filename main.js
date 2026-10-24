@@ -100,6 +100,7 @@ const L=[
 ['🚩 Укради флаг врага и принеси на свою базу!','🚩 Steal the enemy flag and bring it to your base!','🚩 Varasta vaenlase lipp ja too see oma baasi!'],
 [' украл флаг!',' stole the flag!',' varastas lipu!'],[' вернул флаг!',' returned the flag!',' tõi lipu tagasi!'],[' захватил флаг!',' captured the flag!',' vallutas lipu!'],
 ['💣 У ТЕБЯ БОМБА! Передай!','💣 YOU HAVE THE BOMB! Pass it!','💣 SINUL ON POMM! Anna edasi!'],['Убегай от бомбы!','Run from the bomb!','Jookse pommi eest!'],['Стой на плитках!','Stay on the tiles!','Püsi plaatidel!'],
+['Сложность','Difficulty','Raskusaste'],['Обычный ×1','Normal ×1','Tavaline ×1'],['Хард ×2','Hard ×2','Raske ×2'],['Невозможный ×3','Impossible ×3','Võimatu ×3'],
 ['Девид','Devid','Devid'],['Убийца','Murderer','Mõrvar']
 ];
 const DICT=Object.fromEntries(L.map(([a,b,c])=>[a,[b,c]])),KEYS=Object.keys(DICT).sort((a,b)=>b.length-a.length);
@@ -333,17 +334,18 @@ function nextCell(open,from,to){
 }
 
 /* ---------- ХОСТ ---------- */
+$('gamesel').onchange=()=>{$('diffRow').hidden=!['ed','ch'].includes($('gamesel').value)};
 $('bStart').onclick=async()=>{
   const game=$('gamesel').value;let code;
   do{code=String(Math.floor(10000+Math.random()*90000))}while((await get(ref(db,`rooms/${code}/host`))).exists());
   await set(ref(db,`rooms/${code}`),{host:auth.currentUser.uid,game});
   onDisconnect(ref(db,`rooms/${code}`)).remove();
-  runHost(code,game);
+  runHost(code,game,(game==='ed'||game==='ch')?+$('diff').value:1);
 };
 
-function runHost(code,game){
+function runHost(code,game,lv=1){
   show('hostview');
-  $('codeShow').textContent=T('Код: ')+code+' — '+T(NAMES[game]);
+  $('codeShow').textContent=T('Код: ')+code+' — '+T(NAMES[game])+(lv>1?' 🔥×'+lv:'');
   const dark=game==='ed',{r,s,cam,hemi}=scene3d($('cv'),dark);
   const P={},M={},inp={},items=[],path=p=>ref(db,`rooms/${code}/${p}`);
   let phase='lobby',t=0,msg='Можно ходить, пока ждём старта',clock=0,light='green',lt=0,ld=4;
@@ -405,7 +407,7 @@ function runHost(code,game){
       mm2:/ирные победили/.test(msg)?p.role!=='mur':/^Убийца/.test(msg)?p.role==='mur':false,
       rg:wn(p),ring:wn(p),ed:p.alive,ch:p.alive,
       fb:msg.startsWith('Красные победили')?p.team===0:msg.startsWith('Синие победили')?p.team===1:false})[game];
-    set(path('awards'),{id:Date.now(),p:Object.fromEntries(Object.entries(P).map(([u,p])=>[u,10+(won(p)?40:0)+Math.floor(p.score*({tq:2,ch:3,kh:.2,tg:.2}[game]||0))]))});
+    set(path('awards'),{id:Date.now(),p:Object.fromEntries(Object.entries(P).map(([u,p])=>[u,(10+(won(p)?40:0)+Math.floor(p.score*({tq:2,ch:3,kh:.2,tg:.2}[game]||0)))*lv]))});
   };
 
   /* «эпичные кадры» */
@@ -427,11 +429,11 @@ function runHost(code,game){
     const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,1.5,a.z),new THREE.Vector3(b.x,1.5,b.z)]),new THREE.LineBasicMaterial({color:'#fde047'}));
     s.add(l);setTimeout(()=>s.remove(l),250);
   };
-  const clearMaze=()=>{wm.forEach(m=>s.remove(m));wm=[];walls=[];open=null;if(dv){s.remove(dv.m);dv=null}};
+  const clearMaze=()=>{wm.forEach(m=>s.remove(m));wm=[];walls=[];open=null;dvs.forEach(d=>s.remove(d.m));dvs=[]};
   /* ---------- новые режимы ---------- */
   const mk=(rad,col,op=.5)=>{const m=new THREE.Mesh(new THREE.CircleGeometry(rad,40),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));m.rotation.x=-Math.PI/2;m.position.y=.05;return m};
   const disc=(...a)=>{const m=mk(...a);s.add(m);return m};
-  let fxs=[],ev=null,evT=0,evAt=0,ex={},ice=false,mon=null,hill,btn,ball,mark,bv={x:0,z:0},gs=[0,0],ringR=15,it=null,tagCd=0;
+  let dvs=[],dvSfx=3,fxs=[],ev=null,evT=0,evAt=0,ex={},ice=false,mon=[],hill,btn,ball,mark,bv={x:0,z:0},gs=[0,0],ringR=15,it=null,tagCd=0;
   const addfx=(m,upd)=>{s.add(m);fxs.push({m,upd})};
   const kill=(p,why)=>{if(p.alive){p.alive=false;sfx('kill');snap(why,p.x,p.z)}};
   const rp=()=>{const al=Object.values(P).filter(p=>p.alive);return al[Math.floor(Math.random()*al.length)]||{x:0,z:0}};
@@ -459,39 +461,41 @@ function runHost(code,game){
   const spawnMon=(name,col,sp,burger)=>{
     const m=makeAvatar({body:col,head:'#fde68a',arms:col,legs:'#111111'},name),a=R(0,6.28);
     m.scale.setScalar(1.5);const l=new THREE.PointLight('#ff2200',40,14,2);l.position.y=2;m.add(l);s.add(m);
-    mon={x:Math.cos(a)*A,z:Math.sin(a)*A,a:0,m,sp,burger,sfx:2,name};
+    mon.push({x:Math.cos(a)*A,z:Math.sin(a)*A,a:0,m,sp,burger,sfx:2,name});
   };
   const monTick=dt=>{
-    if(!mon)return;let tg=null,bd=1e9;
-    Object.values(P).filter(p=>p.alive).forEach(p=>{const d=Math.hypot(p.x-mon.x,p.z-mon.z);if(d<bd){bd=d;tg=p}});
-    if(tg){
-      const dx=tg.x-mon.x,dz=tg.z-mon.z,d=bd||1;mon.x+=dx/d*mon.sp*dt;mon.z+=dz/d*mon.sp*dt;mon.a=Math.atan2(dx,dz);
-      if(bd<1.6){tg.alive=false;if(mon.burger)sfx('burger');sfx('kill');snap(mon.name+' убил '+tg.name,tg.x,tg.z)}
-    }
-    mon.sfx-=dt;if(mon.burger&&mon.sfx<=0){sfx(Math.random()<.5?'kfc':'burger');mon.sfx=R(5,10)}
-    mon.m.position.set(mon.x,0,mon.z);mon.m.rotation.y=mon.a;mon.m.userData.walk(clock,1);
+    const al=Object.values(P).filter(p=>p.alive);
+    mon.forEach(o=>{
+      let tg=null,bd=1e9;al.forEach(p=>{if(!p.alive)return;const d=Math.hypot(p.x-o.x,p.z-o.z);if(d<bd){bd=d;tg=p}});
+      if(tg){
+        const dx=tg.x-o.x,dz=tg.z-o.z,d=bd||1;o.x+=dx/d*o.sp*dt;o.z+=dz/d*o.sp*dt;o.a=Math.atan2(dx,dz);
+        if(bd<1.6){tg.alive=false;if(o.burger)sfx('burger');sfx('kill');snap(o.name+' убил '+tg.name,tg.x,tg.z)}
+      }
+      o.sfx-=dt;if(o.burger&&o.sfx<=0){sfx(Math.random()<.5?'kfc':'burger');o.sfx=R(5,10)}
+      o.m.position.set(o.x,0,o.z);o.m.rotation.y=o.a;o.m.userData.walk(clock,1);
+    });
   };
   const lightAll=on=>{for(const u in M){[...M[u].children].filter(c=>c.isPointLight).forEach(c=>M[u].remove(c));if(on){const l=new THREE.PointLight('#ffe9b0',35,16,2);l.position.y=3;M[u].add(l)}}};
 
   // «Кнопка судьбы»: 11 случайных событий
   const EVS=[
-    {n:'👹 Девид охотится!',d:20,go:()=>spawnMon('Девид','#dc2626',5,1),tk:dt=>monTick(dt)},
-    {n:'🌙 Ночь... Убийца среди вас!',d:20,go:()=>{hemi.intensity=.1;s.background.set('#050510');lightAll(1);const al=Object.values(P).filter(p=>p.alive),k=al[Math.floor(Math.random()*al.length)];if(k)k.role='mur';ex={k}},tk:()=>{},end:()=>{hemi.intensity=1.4;s.background.set('#87ceeb');lightAll(0);if(ex.k)ex.k.role='inn'}},
-    {n:'☄️ Метеориты!',d:12,go:()=>ex={c:0},tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.45;const p=rp();strike(p.x+R(-4,4),p.z+R(-4,4),3,1.2,'#f97316')}}},
+    {n:'👹 Девид охотится!',d:20,go:()=>{for(let i=0;i<lv;i++)spawnMon('Девид','#dc2626',5*(1+.1*(lv-1)),1)},tk:dt=>monTick(dt)},
+    {n:'🌙 Ночь... Убийца среди вас!',d:20,go:()=>{hemi.intensity=.1;s.background.set('#050510');lightAll(1);const al=Object.values(P).filter(p=>p.alive).sort(()=>Math.random()-.5),ks=al.slice(0,Math.max(1,Math.min(lv,al.length-1)));ks.forEach(k=>k.role='mur');ex={ks}},tk:()=>{},end:()=>{hemi.intensity=1.4;s.background.set('#87ceeb');lightAll(0);(ex.ks||[]).forEach(k=>k.role='inn')}},
+    {n:'☄️ Метеориты!',d:12,go:()=>ex={c:0},tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.45/lv;const p=rp();strike(p.x+R(-4,4),p.z+R(-4,4),3+.5*(lv-1),1.2,'#f97316')}}},
     {n:'🌪 Торнадо!',d:16,
       go:()=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(3,.6,10,16),new THREE.MeshLambertMaterial({color:'#9ca3af',transparent:true,opacity:.7}));const a=R(0,6.28),r=R(13,18),x=Math.cos(a)*r,z=Math.sin(a)*r;m.position.set(x,5,z);s.add(m);ex={m,x,z,vx:R(-4,4),vz:R(-4,4),c:0}},
       tk:dt=>{const o=ex;o.c-=dt;if(o.c<=0){o.c=2;o.vx=R(-4,4);o.vz=R(-4,4)}
         o.x=cl(o.x+o.vx*dt);o.z=cl(o.z+o.vz*dt);o.m.position.x=o.x;o.m.position.z=o.z;o.m.rotation.y+=dt*8;
         for(const u in P){const p=P[u];if(!p.alive)continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);
-          if(d<9&&d>.1){p.x+=dx/d*3.5*dt;p.z+=dz/d*3.5*dt}if(d<1.8)kill(p,p.name+' унесён торнадо!')}},
+          if(d<9*(1+.3*(lv-1))&&d>.1){p.x+=dx/d*3.5*dt;p.z+=dz/d*3.5*dt}if(d<1.8*(1+.25*(lv-1)))kill(p,p.name+' унесён торнадо!')}},
       end:()=>s.remove(ex.m)},
-    {n:'⛈ Гроза!',d:12,go:()=>ex={c:0},tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.5;const p=rp();strike(p.x+R(-2,2),p.z+R(-2,2),2,.7,'#fde047')}}},
+    {n:'⛈ Гроза!',d:12,go:()=>ex={c:0},tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.5/lv;const p=rp();strike(p.x+R(-2,2),p.z+R(-2,2),2+.4*(lv-1),.7,'#fde047')}}},
     {n:'🌋 Извержение вулкана!',d:14,
       go:()=>{const x=R(-8,8),z=R(-8,8),c=new THREE.Mesh(new THREE.ConeGeometry(2.5,5,16),new THREE.MeshLambertMaterial({color:'#7c2d12'}));c.position.set(x,2.5,z);s.add(c);const l=disc(1,'#f97316',.8);l.position.set(x,.08,z);ex={x,z,c,l}},
-      tk:()=>{const o=ex,r=1.5+7.5*(evT/14);o.l.scale.setScalar(r);for(const u in P){const p=P[u];if(p.alive&&Math.hypot(p.x-o.x,p.z-o.z)<r)kill(p,p.name+' сгорел в лаве!')}},
+      tk:()=>{const o=ex,r=1.5+7.5*(1+.5*(lv-1))*(evT/14);o.l.scale.setScalar(r);for(const u in P){const p=P[u];if(p.alive&&Math.hypot(p.x-o.x,p.z-o.z)<r)kill(p,p.name+' сгорел в лаве!')}},
       end:()=>{s.remove(ex.c);s.remove(ex.l)}},
     {n:'🏃 Обби: летающие стены!',d:18,
-      go:()=>{ex={w:Array.from({length:7},()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(7,2,1.4),new THREE.MeshLambertMaterial({color:'#f59e0b'})),an=R(0,6.28),v=R(5,8);
+      go:()=>{ex={w:Array.from({length:7*lv},()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(7,2,1.4),new THREE.MeshLambertMaterial({color:'#f59e0b'})),an=R(0,6.28),v=R(5,8)*(1+.2*(lv-1));
         m.position.set(R(-A,A),1,R(-A,A));s.add(m);return{m,v,vx:Math.cos(an)*v,vz:Math.sin(an)*v,c:R(1.5,3.5),th:R(0,6.28),w:R(-1.2,1.2)}})}},
       tk:dt=>ex.w.forEach(o=>{const m=o.m;o.c-=dt;
         if(o.c<=0){o.c=R(1.5,3.5);const an=R(0,6.28);o.vx=Math.cos(an)*o.v;o.vz=Math.sin(an)*o.v}
@@ -503,27 +507,27 @@ function runHost(code,game){
           if(Math.abs(dx*c-dz*sn)<3.8&&Math.abs(dx*sn+dz*c)<1.3)kill(p,p.name+' врезался в стену!')}}),
       end:()=>ex.w.forEach(o=>s.remove(o.m))},
     {n:'💰 Денежный дождь! Собирай!',d:15,go:()=>ex={c:0},
-      tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.2;
+      tk:dt=>{ex.c-=dt;if(ex.c<=0){ex.c=.2/lv;
         const m=new THREE.Mesh(new THREE.BoxGeometry(.9,.15,.5),new THREE.MeshLambertMaterial({color:'#22c55e'}));m.position.set(R(-A+1,A-1),.4,R(-A+1,A-1));let age=0;
         addfx(m,d2=>{age+=d2;m.rotation.y+=d2*3;for(const u in P){const p=P[u];if(p.alive&&Math.hypot(p.x-m.position.x,p.z-m.position.z)<1.3){p.score++;sfx('gold');return true}}return age>6});}}},
     {n:'🧊 Лёд! Скользко!',d:15,go:()=>{ice=true;ex={l:disc(A*1.2,'#67e8f9',.35)}},tk:()=>{},end:()=>{ice=false;s.remove(ex.l)}},
     {n:'🟢 Лава! Беги на платформы!',d:9,
-      go:()=>{ex={p:[0,1,2].map(()=>{const x=R(-12,12),z=R(-12,12),m=disc(4,'#22c55e',.6);m.position.set(x,.07,z);return{x,z,m}}),l:disc(A*1.2,'#ef4444',0)}},
+      go:()=>{ex={p:[0,1,2].map(()=>{const x=R(-12,12),z=R(-12,12),m=disc(4-.8*(lv-1),'#22c55e',.6);m.position.set(x,.07,z);return{x,z,m}}),l:disc(A*1.2,'#ef4444',0)}},
       tk:()=>{const f=evT>6;ex.l.material.opacity=f?.5:(evT>3&&Math.floor(evT*3)%2?.2:0);
-        if(f)for(const u in P){const p=P[u];if(p.alive&&!ex.p.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<4))kill(p,p.name+' упал в лаву!')}},
+        if(f)for(const u in P){const p=P[u];if(p.alive&&!ex.p.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<4-.8*(lv-1)))kill(p,p.name+' упал в лаву!')}},
       end:()=>{ex.p.forEach(o=>s.remove(o.m));s.remove(ex.l)}},
     {n:'🛸 НЛО похищает!',d:16,
       go:()=>{const u=new THREE.Mesh(new THREE.SphereGeometry(2,16,8),new THREE.MeshLambertMaterial({color:'#94a3b8'}));u.scale.y=.4;u.position.y=12;
         const b=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,12,16),new THREE.MeshBasicMaterial({color:'#a5f3fc',transparent:true,opacity:.3}));b.position.y=6;s.add(u,b);ex={u,b,x:0,z:0}},
       tk:dt=>{const o=ex;let tg=null,bd=1e9;
         Object.values(P).filter(p=>p.alive).forEach(p=>{const d=Math.hypot(p.x-o.x,p.z-o.z);if(d<bd){bd=d;tg=p}});
-        if(tg){o.x+=(tg.x-o.x)/(bd||1)*3.6*dt;o.z+=(tg.z-o.z)/(bd||1)*3.6*dt}
+        if(tg){const sp=3.6*(1+.3*(lv-1));o.x+=(tg.x-o.x)/(bd||1)*sp*dt;o.z+=(tg.z-o.z)/(bd||1)*sp*dt}
         o.u.position.x=o.b.position.x=o.x;o.u.position.z=o.b.position.z=o.z;
-        for(const q in P){const p=P[q];if(!p.alive)continue;if(Math.hypot(p.x-o.x,p.z-o.z)<2.2){p.ab=(p.ab||0)+dt;if(p.ab>1.8){p.ab=0;kill(p,p.name+' похищен НЛО!')}}else p.ab=0}},
+        for(const q in P){const p=P[q];if(!p.alive)continue;if(Math.hypot(p.x-o.x,p.z-o.z)<2.2){p.ab=(p.ab||0)+dt;if(p.ab>1.8/lv){p.ab=0;kill(p,p.name+' похищен НЛО!')}}else p.ab=0}},
       end:()=>s.remove(ex.u,ex.b)}
   ];
   const startEv=e=>{ev=e;evT=0;msg=e.n;e.go();snap(e.n,undefined,undefined,true)};
-  const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;if(mon){s.remove(mon.m);mon=null}fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
+  const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;mon.forEach(o=>s.remove(o.m));mon=[]fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
   const press=p=>{if(p.role==='mur'){p.cd=clock+1;for(const q in P){const o=P[q];if(o!==p&&o.alive&&Math.hypot(o.x-p.x,o.z-p.z)<3)kill(o,p.name+' убил '+o.name+' ножом!')}return}if(ev||clock<evAt||Math.hypot(p.x,p.z)>4)return;p.cd=clock+1;startEv(EVS[Math.floor(Math.random()*EVS.length)])};
   // толчок (царь горы, круг) и удар по мячу (футбол)
   const push=p=>{p.cd=clock+1.2;for(const q in P){const o=P[q];if(o===p||!o.alive||(game==='ctf'&&o.team===p.team))continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);if(d<3.2&&d>.01){o.kx=dx/d*20;o.kz=dz/d*20}}};
@@ -632,8 +636,11 @@ function runHost(code,game){
     if(game==='ed'){
       open=genMaze();({walls,meshes:wm}=buildMaze(s,open));
       ids.forEach(u=>{P[u].x=-A+Math.floor(Math.random()*N)*CS+CS/2;P[u].z=-A+Math.floor(Math.random()*3)*CS+CS/2});
-      dv={x:-A+(N-1)*CS+CS/2,z:-A+(N-1)*CS+CS/2,a:0,sfx:3,wait:5,m:makeAvatar({body:'#dc2626',head:'#fde68a',arms:'#fde68a',legs:'#ffffff',hat:'cap'},'Девид')};
-      dv.m.scale.setScalar(1.6);const l=new THREE.PointLight('#ff2200',40,14,2);l.position.y=2;dv.m.add(l);s.add(dv.m);
+      dvs=[0,1,2].slice(0,lv).map(i=>{
+        const cx=[N-1,0,Math.floor(N/2)][i],o={x:-A+cx*CS+CS/2,z:-A+(N-1)*CS+CS/2,a:0,wait:[5,3,1.5][lv-1],sp:5.2*[1,1.12,1.25][lv-1],
+          m:makeAvatar({body:'#dc2626',head:'#fde68a',arms:'#fde68a',legs:'#ffffff',hat:'cap'},'Девид')};
+        o.m.scale.setScalar(1.6);const l=new THREE.PointLight('#ff2200',40,14,2);l.position.y=2;o.m.add(l);s.add(o.m);return o;
+      });dvSfx=3;
       t=90;msg='Выживи 90 секунд! Девид идёт...';
     }
     endEv();
@@ -656,6 +663,7 @@ function runHost(code,game){
       ids.forEach(u=>{P[u].x=R(-8,8);P[u].z=P[u].team?-14:14});
       flags.forEach(f=>{f.carrier=null;f.m.position.set(f.home.x,0,f.home.z)});
     }
+    if(lv>1&&(game==='ed'||game==='ch'))msg+=' 🔥×'+lv;
     phase='play';playMusic();
   };
 
@@ -712,21 +720,23 @@ function runHost(code,game){
         for(const u in P)if(phase==='play'&&P[u].alive&&P[u].z<=-A+3){snap(P[u].name+' добежал до финиша!',P[u].x,P[u].z);end('Победитель: '+P[u].name+'!')}
         if(phase==='play'&&!Object.values(P).some(p=>p.alive))end('Все выбыли!');
       }
-      if(game==='ed'&&dv){
-        if(dv.wait>0)dv.wait-=dt;
-        else{
-          const al=Object.values(P).filter(p=>p.alive);
-          if(al.length){
-            let tg=al[0],bd=1e9;al.forEach(p=>{const d=Math.hypot(p.x-dv.x,p.z-dv.z);if(d<bd){bd=d;tg=p}});
-            const cm=cell(dv),ct=cell(tg);let px=tg.x,pz=tg.z;
-            if(cm[0]!==ct[0]||cm[1]!==ct[1]){const n=nextCell(open,cm,ct);px=-A+n[0]*CS+CS/2;pz=-A+n[1]*CS+CS/2}
-            const dx=px-dv.x,dz=pz-dv.z,d=Math.hypot(dx,dz)||1,k=5.2*dt;
-            dv.x+=dx/d*k;dv.z+=dz/d*k;dv.a=Math.atan2(dx,dz);collide(dv,walls,.7);
-            al.forEach(p=>{if(Math.hypot(p.x-dv.x,p.z-dv.z)<1.5){p.alive=false;sfx('burger');sfx('kill');snap('Девид съел '+p.name,p.x,p.z)}});
+      if(game==='ed'&&dvs.length){
+        const al=Object.values(P).filter(p=>p.alive);
+        dvs.forEach(dv=>{
+          if(dv.wait>0)dv.wait-=dt;
+          else if(al.length){
+            let tg=null,bd=1e9;al.forEach(p=>{if(!p.alive)return;const d=Math.hypot(p.x-dv.x,p.z-dv.z);if(d<bd){bd=d;tg=p}});
+            if(tg){
+              const cm=cell(dv),ct=cell(tg);let px=tg.x,pz=tg.z;
+              if(cm[0]!==ct[0]||cm[1]!==ct[1]){const n=nextCell(open,cm,ct);px=-A+n[0]*CS+CS/2;pz=-A+n[1]*CS+CS/2}
+              const dx=px-dv.x,dz=pz-dv.z,d=Math.hypot(dx,dz)||1,k=dv.sp*dt;
+              dv.x+=dx/d*k;dv.z+=dz/d*k;dv.a=Math.atan2(dx,dz);collide(dv,walls,.7);
+              al.forEach(p=>{if(p.alive&&Math.hypot(p.x-dv.x,p.z-dv.z)<1.5){p.alive=false;sfx('burger');sfx('kill');snap('Девид съел '+p.name,p.x,p.z)}});
+            }
           }
-          dv.sfx-=dt;if(dv.sfx<=0){sfx(Math.random()<.5?'kfc':'burger');dv.sfx=R(5,10)}
-        }
-        dv.m.position.set(dv.x,0,dv.z);dv.m.rotation.y=dv.a;dv.m.userData.walk(clock,dv.wait<=0);
+          dv.m.position.set(dv.x,0,dv.z);dv.m.rotation.y=dv.a;dv.m.userData.walk(clock,dv.wait<=0);
+        });
+        if(dvs[0].wait<=0){dvSfx-=dt;if(dvSfx<=0){sfx(Math.random()<.5?'kfc':'burger');dvSfx=R(5,10)/Math.sqrt(lv)}}
         if(!Object.values(P).some(p=>p.alive))end('Девид съел всех!');
       }
       if(game==='kh'){for(const u in P){const p=P[u];if(p.alive&&Math.hypot(p.x,p.z)<4)p.score+=dt}}
@@ -756,8 +766,8 @@ function runHost(code,game){
         if(phase==='play')msg=`⚽ Красные ${gs[0]} : ${gs[1]} Синие`;
       }
       if(game==='ch'){
-        if(ev){evT+=dt;ev.tk(dt);if(evT>=ev.d){endEv();evAt=clock+6;msg='Событие закончилось. Жми кнопку!'}}
-        else if(clock>evAt+25)startEv(EVS[Math.floor(Math.random()*EVS.length)]);
+        if(ev){evT+=dt;ev.tk(dt);if(evT>=ev.d){endEv();evAt=clock+6/lv;msg='Событие закончилось. Жми кнопку!'}}
+        else if(clock>evAt+25/lv)startEv(EVS[Math.floor(Math.random()*EVS.length)]);
         btn.material.color.set(ev||clock<evAt?'#6b7280':'#dc2626');
         if(!Object.values(P).some(p=>p.alive))end('Все погибли!');
       }
