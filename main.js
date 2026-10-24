@@ -527,7 +527,7 @@ function runHost(code,game,lv=1){
       end:()=>s.remove(ex.u,ex.b)}
   ];
   const startEv=e=>{ev=e;evT=0;msg=e.n;e.go();snap(e.n,undefined,undefined,true)};
-  const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;mon.forEach(o=>s.remove(o.m));mon=[]fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
+  const endEv=()=>{if(ev&&ev.end)ev.end();ev=null;mon.forEach(o=>s.remove(o.m));mon=[];fxs.splice(0).forEach(f=>s.remove(f.m));ice=false;ex={}};
   const press=p=>{if(p.role==='mur'){p.cd=clock+1;for(const q in P){const o=P[q];if(o!==p&&o.alive&&Math.hypot(o.x-p.x,o.z-p.z)<3)kill(o,p.name+' убил '+o.name+' ножом!')}return}if(ev||clock<evAt||Math.hypot(p.x,p.z)>4)return;p.cd=clock+1;startEv(EVS[Math.floor(Math.random()*EVS.length)])};
   // толчок (царь горы, круг) и удар по мячу (футбол)
   const push=p=>{p.cd=clock+1.2;for(const q in P){const o=P[q];if(o===p||!o.alive||(game==='ctf'&&o.team===p.team))continue;const dx=o.x-p.x,dz=o.z-p.z,d=Math.hypot(dx,dz);if(d<3.2&&d>.01){o.kx=dx/d*20;o.kz=dz/d*20}}};
