@@ -30,7 +30,7 @@ let lang=localStorage.getItem('lang')||'ru';
 const UNIT={ru:'с',en:'s',et:'s'},MINU={ru:'мин',en:'min',et:'min'};
 const L=[
 ['Войти','Log in','Sisene'],['Регистрация','Sign up','Registreeru'],['Клиент','Client','Klient'],['Хост','Host','Host'],
-['Мой аватар','My avatar','Minu avatar'],['Установить приложение','Install app','Installi äpp'],['Магазин','Shop','Pood'],['Выйти','Log out','Logi välja'],['Выбери игру','Choose a game','Vali mäng'],
+['Мой аватар','My avatar','Minu avatar'],['Скачать приложение','Download app','Installi äpp'],['Магазин','Shop','Pood'],['Выйти','Log out','Logi välja'],['Выбери игру','Choose a game','Vali mäng'],
 ['Красный/зелёный свет','Red light / Green light','Punane/roheline tuli'],['Побег от Девида','Escape from Devid','Põgene Devidi eest'],
 ['Кнопка судьбы','Button of Fate','Saatusenupp'],['Царь горы','King of the Hill','Mäekuningas'],['Догонялки','Tag','Kulli'],
 ['Оставайся в круге','Stay in the Circle','Püsi ringis'],['Футбол','Football','Jalgpall'],['Начать','Start','Alusta'],
