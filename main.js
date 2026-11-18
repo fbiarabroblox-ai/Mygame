@@ -25,6 +25,10 @@ document.addEventListener('click', () => {
     }
 });
 
+$('bIa').onclick = () => {
+    window.open('https://github.com/Arena3D/arena3d.github.io/releases', '_blank');
+};
+
 /* ---------- Языки: русский / English / Eesti ---------- */
 let lang=localStorage.getItem('lang')||'ru';
 const UNIT={ru:'с',en:'s',et:'s'},MINU={ru:'мин',en:'min',et:'min'};
